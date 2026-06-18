@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import FileTree from './components/FileTree.vue'
+import FilePreview from './components/FilePreview.vue'
 import Divider from './components/Divider.vue'
 import Terminal from './components/Terminal.vue'
 import TabBar from './components/TabBar.vue'
@@ -62,7 +63,7 @@ function activateTab(id: string) {
 }
 
 // 选择目录后向当前活跃 Tab 发送 cd
-const { pickedDir } = useFileTree()
+const { pickedDir, selectedFile } = useFileTree()
 watch(pickedDir, (dir) => {
   if (dir) {
     EventsEmit('pty:input', activeTabId.value, `cd "${dir}"\r`)
@@ -74,6 +75,11 @@ watch(pickedDir, (dir) => {
   <div class="layout">
     <div class="tree-pane" :style="{ width: treeWidth + 'px' }">
       <FileTree />
+      <FilePreview
+        v-if="selectedFile"
+        :file="selectedFile"
+        @close="selectedFile = null"
+      />
     </div>
     <Divider @resize="onResize" />
     <div class="terminal-area">
@@ -113,6 +119,8 @@ watch(pickedDir, (dir) => {
   flex: 0 0 auto;
   height: 100%;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .terminal-area {
   flex: 1 1 0;

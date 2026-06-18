@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
+	"io"
+	"mime"
 	"os"
 	"path/filepath"
 	"sort"
@@ -109,4 +112,32 @@ func (a *App) OpenFolderDialog() (string, error) {
 // HomeDir 返回用户主目录，供前端首次加载（无 lastDir 时）作为默认目录。
 func (a *App) HomeDir() (string, error) {
 	return os.UserHomeDir()
+}
+
+// ReadFileText 读取文本文件，最多返回 maxBytes 字节，供代码/文本预览。
+func (a *App) ReadFileText(path string, maxBytes int64) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	data, err := io.ReadAll(io.LimitReader(f, maxBytes))
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+// ReadFileBase64 读取文件并返回 data URL，供图片预览。
+func (a *App) ReadFileBase64(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	ext := strings.ToLower(filepath.Ext(path))
+	mt := mime.TypeByExtension(ext)
+	if mt == "" {
+		mt = "application/octet-stream"
+	}
+	return "data:" + mt + ";base64," + base64.StdEncoding.EncodeToString(data), nil
 }

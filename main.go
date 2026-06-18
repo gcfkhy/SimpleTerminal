@@ -24,7 +24,8 @@ func main() {
 		MinWidth:  720,
 		MinHeight: 480,
 		AssetServer: &assetserver.Options{
-			Assets: assets,
+			Assets:  assets,
+			Handler: &localFileHandler{},
 		},
 		// Catppuccin Mocha 基础色 #1e1e2e
 		BackgroundColour: &options.RGBA{R: 30, G: 30, B: 46, A: 1},

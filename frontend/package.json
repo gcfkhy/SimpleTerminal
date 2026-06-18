@@ -9,11 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.0",
-    "@xterm/xterm": "^5.5.0",
+    "@xterm/addon-canvas": "^0.7.0",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/addon-webgl": "^0.18.0",
-    "@xterm/addon-canvas": "^0.7.0"
+    "@xterm/xterm": "^5.5.0",
+    "highlight.js": "^11.11.1",
+    "vue": "^3.4.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",

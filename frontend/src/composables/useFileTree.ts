@@ -4,8 +4,8 @@ import type { main } from '../../wailsjs/go/models'
 
 const LAST_DIR_KEY = 'lastDir'
 
-// 模块级共享：App.vue 监听此 ref，在当前活跃 Tab 执行 cd
-const pickedDir = ref('')
+const pickedDir   = ref('')
+const selectedFile = ref<main.FileEntry | null>(null)
 
 export function useFileTree() {
   const currentPath = ref<string>('')
@@ -59,8 +59,11 @@ export function useFileTree() {
   function open(entry: main.FileEntry) {
     if (entry.isDir) {
       void loadDir(entry.path)
+    } else {
+      // 点击文件：切换预览（再次点击同一文件则关闭）
+      selectedFile.value = selectedFile.value?.path === entry.path ? null : entry
     }
   }
 
-  return { currentPath, entries, error, init, loadDir, goUp, openFolderDialog, open, pickedDir }
+  return { currentPath, entries, error, init, loadDir, goUp, openFolderDialog, open, pickedDir, selectedFile }
 }
