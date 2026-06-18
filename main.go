@@ -18,7 +18,7 @@ func main() {
 
 	// 创建应用并配置选项
 	err := wails.Run(&options.App{
-		Title:     "TerminalTree",
+		Title:     "SimpleTerminal",
 		Width:     1100,
 		Height:    720,
 		MinWidth:  720,

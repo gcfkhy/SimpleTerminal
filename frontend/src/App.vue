@@ -46,8 +46,7 @@ interface Tab {
 }
 
 let counter = 1
-const initialDir = localStorage.getItem('lastDir') ?? undefined
-const tabs = ref<Tab[]>([{ id: 'tab-1', title: 'Terminal 1', initialDir }])
+const tabs = ref<Tab[]>([{ id: 'tab-1', title: 'Terminal 1' }])
 const activeTabId = ref('tab-1')
 
 function addTab() {
@@ -56,7 +55,6 @@ function addTab() {
   tabs.value.push({
     id,
     title: `Terminal ${counter}`,
-    initialDir: localStorage.getItem('lastDir') ?? undefined,
   })
   activeTabId.value = id
 }

@@ -1,8 +1,6 @@
 import { ref } from 'vue'
-import { ReadDir, OpenFolderDialog, HomeDir } from '../../wailsjs/go/main/App'
+import { ReadDir, OpenFolderDialog } from '../../wailsjs/go/main/App'
 import type { main } from '../../wailsjs/go/models'
-
-const LAST_DIR_KEY = 'lastDir'
 
 const pickedDir   = ref('')
 const selectedFile = ref<main.FileEntry | null>(null)
@@ -18,7 +16,6 @@ export function useFileTree() {
       entries.value = list ?? []
       currentPath.value = path
       error.value = ''
-      localStorage.setItem(LAST_DIR_KEY, path)
       return true
     } catch (e) {
       error.value = String(e)
@@ -26,15 +23,8 @@ export function useFileTree() {
     }
   }
 
-  async function init() {
-    const last = localStorage.getItem(LAST_DIR_KEY)
-    if (last && (await loadDir(last))) return
-    try {
-      const home = await HomeDir()
-      await loadDir(home)
-    } catch (e) {
-      error.value = String(e)
-    }
+  function init() {
+    // 启动时不加载任何目录，等待用户点击"选择目录"按钮
   }
 
   function goUp() {

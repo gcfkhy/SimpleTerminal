@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import type { main } from '../../wailsjs/go/models'
 import { ReadFileText, ReadFileBase64 } from '../../wailsjs/go/main/App'
 import hljs from 'highlight.js'
@@ -49,8 +49,59 @@ function ptype(file: main.FileEntry): PType {
 const kind = computed(() => ptype(props.file))
 const loading = ref(false)
 const error   = ref('')
-const imgSrc  = ref('')
+const imgSrc   = ref('')
 const imgScale = ref(1)
+const imgX     = ref(0)
+const imgY     = ref(0)
+const spaceHeld  = ref(false)
+const isPanning  = ref(false)
+let panStartX = 0, panStartY = 0, panOriginX = 0, panOriginY = 0
+
+const imgCursor = computed(() => {
+  if (isPanning.value) return 'grabbing'
+  if (spaceHeld.value) return 'grab'
+  return 'default'
+})
+
+function onKeyDown(e: KeyboardEvent) {
+  if (e.code === 'Space' && kind.value === 'image') {
+    e.preventDefault()
+    spaceHeld.value = true
+  }
+}
+function onKeyUp(e: KeyboardEvent) {
+  if (e.code === 'Space') {
+    spaceHeld.value = false
+    isPanning.value = false
+  }
+}
+function onImgMouseDown(e: MouseEvent) {
+  if (!spaceHeld.value) return
+  e.preventDefault()
+  isPanning.value = true
+  panStartX = e.clientX; panStartY = e.clientY
+  panOriginX = imgX.value; panOriginY = imgY.value
+}
+function onImgMouseMove(e: MouseEvent) {
+  if (!isPanning.value) return
+  imgX.value = panOriginX + (e.clientX - panStartX)
+  imgY.value = panOriginY + (e.clientY - panStartY)
+}
+function onImgMouseUp() { isPanning.value = false }
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeyDown)
+  window.addEventListener('keyup', onKeyUp)
+  window.addEventListener('mousemove', onImgMouseMove)
+  window.addEventListener('mouseup', onImgMouseUp)
+})
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeyDown)
+  window.removeEventListener('keyup', onKeyUp)
+  window.removeEventListener('mousemove', onImgMouseMove)
+  window.removeEventListener('mouseup', onImgMouseUp)
+})
+
 const highlighted = ref('')
 const markdownHtml = ref('')
 const plainText   = ref('')
@@ -68,6 +119,8 @@ watch(() => props.file, async (file) => {
   error.value = ''
   imgSrc.value = ''
   imgScale.value = 1
+  imgX.value = 0
+  imgY.value = 0
   highlighted.value = ''
   markdownHtml.value = ''
   plainText.value = ''
@@ -110,11 +163,16 @@ watch(() => props.file, async (file) => {
       <div v-if="loading"  class="center muted">加载中…</div>
       <div v-else-if="error" class="center err">{{ error }}</div>
 
-      <div v-else-if="kind === 'image'" class="img-wrap" @wheel="onImgWheel">
+      <div v-else-if="kind === 'image'"
+           class="img-wrap"
+           :style="{ cursor: imgCursor }"
+           @wheel.prevent="onImgWheel"
+           @mousedown="onImgMouseDown">
         <img
           :src="imgSrc"
           :alt="file.name"
-          :style="{ transform: `scale(${imgScale})` }"
+          :draggable="false"
+          :style="{ transform: `translate(${imgX}px, ${imgY}px) scale(${imgScale})` }"
         />
       </div>
 
@@ -201,15 +259,16 @@ watch(() => props.file, async (file) => {
   justify-content: center;
   height: 100%;
   padding: 8px;
-  overflow: auto;
+  overflow: hidden;
+  user-select: none;
 }
 .img-wrap img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   transform-origin: center center;
-  transition: transform 0.1s;
-  cursor: zoom-in;
+  transition: transform 0.08s;
+  pointer-events: none;
 }
 
 .video-wrap {

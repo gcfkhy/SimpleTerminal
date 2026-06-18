@@ -1,4 +1,4 @@
-module TerminalTree
+module SimpleTerminal
 
 go 1.23.0
 
