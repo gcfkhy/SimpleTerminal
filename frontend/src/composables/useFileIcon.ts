@@ -1,6 +1,4 @@
-// 把文件名/扩展名映射到 Material Icon Theme 的 SVG（jsDelivr CDN 加载）。
-// <img @error> 会回退到通用文件/文件夹图标。
-const CDN = 'https://cdn.jsdelivr.net/gh/PKief/vscode-material-icon-theme/icons'
+const CDN = '/icons'
 
 const FILE_FALLBACK = `${CDN}/file.svg`
 const FOLDER_FALLBACK = `${CDN}/folder.svg`
