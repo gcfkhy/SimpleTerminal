@@ -215,13 +215,16 @@ watch(() => props.file, async (file) => {
 .code-wrap {
   height: 100%;
 }
+.code-wrap pre,
+.code-wrap pre code {
+  font-family: 'SF Mono', Consolas, 'MiSans', monospace !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  line-height: 1.5;
+}
 .code-wrap pre {
   margin: 0;
   padding: 8px;
-  font-family: 'SF Mono', Consolas, 'MiSans', monospace;
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.5;
   white-space: pre;
   background: transparent !important;
   color: var(--ctp-text);
