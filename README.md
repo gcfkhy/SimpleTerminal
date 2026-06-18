@@ -18,7 +18,7 @@
 |------|------|
 | **Windows Terminal** | 没有文件目录面板，切换目录只能手打路径 |
 | **VSCode / Trae / CodeBuddy 内置终端** | 与 AI CLI（如 Claude Code、Aider）长时间交互后文字花屏、渲染卡顿 |
-| **Warp** | 功能过于复杂，强绑 AI 账号，启动慢 |
+| **Warp** | 功能过于复杂 |
 | **WindTerm** | 不支持从文件树拖拽文件并自动粘贴路径到命令行 |
 
 simpleTerminal 只做一件事：**让文件树和终端无缝配合**，其余保持克制。
@@ -98,7 +98,7 @@ Every existing tool has a gap:
 |------|---------|
 | **Windows Terminal** | No file panel — switching directories means typing paths by hand |
 | **VSCode / Trae / CodeBuddy terminal** | Screen corruption and rendering lag after extended AI CLI sessions (Claude Code, Aider, etc.) |
-| **Warp** | Too heavyweight, AI account required, slow to start |
+| **Warp** | Too feature-heavy |
 | **WindTerm** | No drag-and-drop path injection from a file tree |
 
 simpleTerminal does one thing well: **seamless file tree + terminal integration**, without the bloat.
