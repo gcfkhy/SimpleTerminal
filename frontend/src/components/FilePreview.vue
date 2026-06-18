@@ -47,15 +47,23 @@ const kind = computed(() => ptype(props.file))
 const loading = ref(false)
 const error   = ref('')
 const imgSrc  = ref('')
+const imgScale = ref(1)
 const highlighted = ref('')
 const plainText   = ref('')
 const videoSrc = computed(() =>
   `/localfile?path=${encodeURIComponent(props.file.path)}`)
 
+function onImgWheel(e: WheelEvent) {
+  e.preventDefault()
+  const factor = e.deltaY < 0 ? 1.1 : 0.9
+  imgScale.value = Math.min(10, Math.max(0.1, imgScale.value * factor))
+}
+
 watch(() => props.file, async (file) => {
   loading.value = true
   error.value = ''
   imgSrc.value = ''
+  imgScale.value = 1
   highlighted.value = ''
   plainText.value = ''
 
@@ -94,8 +102,12 @@ watch(() => props.file, async (file) => {
       <div v-if="loading"  class="center muted">加载中…</div>
       <div v-else-if="error" class="center err">{{ error }}</div>
 
-      <div v-else-if="kind === 'image'" class="img-wrap">
-        <img :src="imgSrc" :alt="file.name" />
+      <div v-else-if="kind === 'image'" class="img-wrap" @wheel="onImgWheel">
+        <img
+          :src="imgSrc"
+          :alt="file.name"
+          :style="{ transform: `scale(${imgScale})` }"
+        />
       </div>
 
       <div v-else-if="kind === 'video'" class="video-wrap">
@@ -177,11 +189,15 @@ watch(() => props.file, async (file) => {
   justify-content: center;
   height: 100%;
   padding: 8px;
+  overflow: auto;
 }
 .img-wrap img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  transform-origin: center center;
+  transition: transform 0.1s;
+  cursor: zoom-in;
 }
 
 .video-wrap {
@@ -203,7 +219,7 @@ watch(() => props.file, async (file) => {
   margin: 0;
   padding: 8px;
   font-family: 'SF Mono', Consolas, 'MiSans', monospace;
-  font-size: 11px;
+  font-size: 15px;
   line-height: 1.5;
   white-space: pre;
   background: transparent !important;
