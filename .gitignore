@@ -1,3 +1,30 @@
-build/bin
-node_modules
-frontend/dist
+# Build output
+build/bin/
+build/windows/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Go binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Temp / probe files
+_probe_*.txt
+*.tmp
