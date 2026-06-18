@@ -9,20 +9,33 @@ import { useFileTree } from './composables/useFileTree'
 import { EventsEmit } from '../wailsjs/runtime'
 import { ClosePty } from '../wailsjs/go/main/App'
 
-const MIN_WIDTH = 160
-const MAX_WIDTH = 500
-const WIDTH_KEY = 'treeWidth'
+// ── 左侧文件树宽度 ─────────────────────────────────────────
+const TREE_MIN = 160
+const TREE_MAX = 500
+const TREE_KEY = 'treeWidth'
 
-function clamp(w: number): number {
-  return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, w))
-}
-
-const saved = Number(localStorage.getItem(WIDTH_KEY))
-const treeWidth = ref<number>(Number.isFinite(saved) && saved > 0 ? clamp(saved) : 280)
+const savedTree = Number(localStorage.getItem(TREE_KEY))
+const treeWidth = ref<number>(Number.isFinite(savedTree) && savedTree > 0
+  ? Math.min(TREE_MAX, Math.max(TREE_MIN, savedTree)) : 280)
 
 function onResize(deltaX: number) {
-  treeWidth.value = clamp(treeWidth.value + deltaX)
-  localStorage.setItem(WIDTH_KEY, String(treeWidth.value))
+  treeWidth.value = Math.min(TREE_MAX, Math.max(TREE_MIN, treeWidth.value + deltaX))
+  localStorage.setItem(TREE_KEY, String(treeWidth.value))
+}
+
+// ── 右侧预览栏宽度 ─────────────────────────────────────────
+const PREVIEW_MIN = 200
+const PREVIEW_MAX = 700
+const PREVIEW_KEY = 'previewWidth'
+
+const savedPreview = Number(localStorage.getItem(PREVIEW_KEY))
+const previewWidth = ref<number>(Number.isFinite(savedPreview) && savedPreview > 0
+  ? Math.min(PREVIEW_MAX, Math.max(PREVIEW_MIN, savedPreview)) : 320)
+
+function onPreviewResize(deltaX: number) {
+  // 分隔线在预览栏左侧，向左拖（deltaX 负）→ 预览变宽
+  previewWidth.value = Math.min(PREVIEW_MAX, Math.max(PREVIEW_MIN, previewWidth.value - deltaX))
+  localStorage.setItem(PREVIEW_KEY, String(previewWidth.value))
 }
 
 // ── Tab 管理 ──────────────────────────────────────────────
@@ -100,11 +113,14 @@ watch(pickedDir, (dir) => {
         </div>
       </div>
     </div>
-    <FilePreview
-      v-if="selectedFile"
-      :file="selectedFile"
-      @close="selectedFile = null"
-    />
+    <template v-if="selectedFile">
+      <Divider @resize="onPreviewResize" />
+      <FilePreview
+        :file="selectedFile"
+        :style="{ width: previewWidth + 'px' }"
+        @close="selectedFile = null"
+      />
+    </template>
   </div>
 </template>
 

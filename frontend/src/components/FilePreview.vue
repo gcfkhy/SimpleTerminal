@@ -119,12 +119,13 @@ watch(() => props.file, async (file) => {
 
 <style scoped>
 .preview {
-  flex: 0 0 320px;
+  flex: 0 0 auto;
   height: 100%;
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--ctp-surface0);
   background: var(--ctp-crust);
+  overflow: hidden;
 }
 
 .preview-header {
