@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref, watch, nextTick } from 'vue'
+
 interface Tab {
   id: string
   title: string
@@ -10,6 +12,14 @@ const emit = defineEmits<{
   activate: [id: string]
 }>()
 
+const tabbarRef = ref<HTMLElement | null>(null)
+
+watch(() => props.activeId, async () => {
+  await nextTick()
+  const el = tabbarRef.value?.querySelector<HTMLElement>('.tab.active')
+  el?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+})
+
 function onWheel(e: WheelEvent) {
   e.preventDefault()
   const idx = props.tabs.findIndex((t) => t.id === props.activeId)
@@ -20,7 +30,7 @@ function onWheel(e: WheelEvent) {
 </script>
 
 <template>
-  <div class="tabbar" @wheel="onWheel">
+  <div ref="tabbarRef" class="tabbar" @wheel="onWheel">
     <div
       v-for="tab in tabs"
       :key="tab.id"
