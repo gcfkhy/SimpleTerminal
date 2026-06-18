@@ -67,8 +67,7 @@ function onIconError(e: Event, isDir: boolean) {
 .filetree {
   display: flex;
   flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
+  height: 100%;
   background: var(--ctp-mantle);
   user-select: none;
 }
