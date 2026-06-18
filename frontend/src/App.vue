@@ -75,11 +75,6 @@ watch(pickedDir, (dir) => {
   <div class="layout">
     <div class="tree-pane" :style="{ width: treeWidth + 'px' }">
       <FileTree />
-      <FilePreview
-        v-if="selectedFile"
-        :file="selectedFile"
-        @close="selectedFile = null"
-      />
     </div>
     <Divider @resize="onResize" />
     <div class="terminal-area">
@@ -105,6 +100,11 @@ watch(pickedDir, (dir) => {
         </div>
       </div>
     </div>
+    <FilePreview
+      v-if="selectedFile"
+      :file="selectedFile"
+      @close="selectedFile = null"
+    />
   </div>
 </template>
 
@@ -119,8 +119,6 @@ watch(pickedDir, (dir) => {
   flex: 0 0 auto;
   height: 100%;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 .terminal-area {
   flex: 1 1 0;
