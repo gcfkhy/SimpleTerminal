@@ -3,16 +3,24 @@ interface Tab {
   id: string
   title: string
 }
-defineProps<{ tabs: Tab[]; activeId: string }>()
+const props = defineProps<{ tabs: Tab[]; activeId: string }>()
 const emit = defineEmits<{
   add: []
   close: [id: string]
   activate: [id: string]
 }>()
+
+function onWheel(e: WheelEvent) {
+  e.preventDefault()
+  const idx = props.tabs.findIndex((t) => t.id === props.activeId)
+  const delta = e.deltaY > 0 ? 1 : -1
+  const next = props.tabs[idx + delta]
+  if (next) emit('activate', next.id)
+}
 </script>
 
 <template>
-  <div class="tabbar">
+  <div class="tabbar" @wheel="onWheel">
     <div
       v-for="tab in tabs"
       :key="tab.id"
