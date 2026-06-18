@@ -153,15 +153,17 @@ function onIconError(e: Event, isDir: boolean) {
 .pick-btn {
   width: 100%;
   padding: 7px 0;
-  border: none;
+  border: 1px solid var(--ctp-overlay0);
   border-radius: 6px;
-  background: var(--ctp-blue);
-  color: var(--ctp-crust);
+  background: transparent;
+  color: var(--ctp-subtext1);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 400;
   cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
 .pick-btn:hover {
-  background: var(--ctp-lavender);
+  background: var(--ctp-surface1);
+  color: var(--ctp-text);
 }
 </style>

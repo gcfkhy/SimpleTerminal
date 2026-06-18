@@ -1,3 +1,17 @@
+@font-face {
+  font-family: 'SF Mono';
+  src: url('/fonts/SF Mono.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'MiSans';
+  src: url('/fonts/MiSans-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+
 :root {
   /* Catppuccin Mocha */
   --ctp-base: #1e1e2e;

@@ -40,7 +40,7 @@ export function useTerminal() {
 
   function mount(el: HTMLElement) {
     term = new Terminal({
-      fontFamily: '"Cascadia Code", "Cascadia Mono", Consolas, "Courier New", monospace',
+      fontFamily: '"SF Mono", Consolas, "MiSans", monospace',
       fontSize: 14,
       cursorBlink: true,
       theme: catppuccinMocha,
