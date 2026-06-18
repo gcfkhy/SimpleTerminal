@@ -50,13 +50,15 @@ export function useFileTree() {
 
   async function openFolderDialog() {
     const picked = await OpenFolderDialog()
-    if (picked) await loadDir(picked)
+    if (picked) {
+      await loadDir(picked)
+      EventsEmit('pty:input', `cd "${picked}"\r`)
+    }
   }
 
-  // 点击：目录则进入并在终端 cd；文件不做处理（v2.0 预览面板再用）
+  // 点击目录只导航文件树，不向终端发送 cd 命令
   function open(entry: main.FileEntry) {
     if (entry.isDir) {
-      EventsEmit('pty:input', `cd "${entry.path}"\r`)
       void loadDir(entry.path)
     }
   }
