@@ -3,7 +3,6 @@ build_tools/node_modules/
 
 # Build output
 build/bin/
-build/windows/
 
 # Frontend
 frontend/node_modules/
