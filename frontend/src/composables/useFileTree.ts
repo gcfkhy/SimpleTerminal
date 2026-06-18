@@ -1,9 +1,11 @@
 import { ref } from 'vue'
 import { ReadDir, OpenFolderDialog, HomeDir } from '../../wailsjs/go/main/App'
-import { EventsEmit } from '../../wailsjs/runtime'
 import type { main } from '../../wailsjs/go/models'
 
 const LAST_DIR_KEY = 'lastDir'
+
+// 模块级共享：App.vue 监听此 ref，在当前活跃 Tab 执行 cd
+const pickedDir = ref('')
 
 export function useFileTree() {
   const currentPath = ref<string>('')
@@ -24,7 +26,6 @@ export function useFileTree() {
     }
   }
 
-  // 挂载时恢复上次目录，失败则回退到用户主目录
   async function init() {
     const last = localStorage.getItem(LAST_DIR_KEY)
     if (last && (await loadDir(last))) return
@@ -36,7 +37,6 @@ export function useFileTree() {
     }
   }
 
-  // 上级目录（兼容 Windows 反斜杠/正斜杠，盘符根停止）
   function goUp() {
     const p = currentPath.value
     if (!p) return
@@ -44,7 +44,7 @@ export function useFileTree() {
     const idx = Math.max(normalized.lastIndexOf('\\'), normalized.lastIndexOf('/'))
     if (idx <= 0) return
     let parent = normalized.slice(0, idx)
-    if (/^[a-zA-Z]:$/.test(parent)) parent += '\\' // "C:" → "C:\"
+    if (/^[a-zA-Z]:$/.test(parent)) parent += '\\'
     void loadDir(parent)
   }
 
@@ -52,16 +52,15 @@ export function useFileTree() {
     const picked = await OpenFolderDialog()
     if (picked) {
       await loadDir(picked)
-      EventsEmit('pty:input', `cd "${picked}"\r`)
+      pickedDir.value = picked  // 通知 App.vue 向活跃 Tab 发送 cd
     }
   }
 
-  // 点击目录只导航文件树，不向终端发送 cd 命令
   function open(entry: main.FileEntry) {
     if (entry.isDir) {
       void loadDir(entry.path)
     }
   }
 
-  return { currentPath, entries, error, init, loadDir, goUp, openFolderDialog, open }
+  return { currentPath, entries, error, init, loadDir, goUp, openFolderDialog, open, pickedDir }
 }

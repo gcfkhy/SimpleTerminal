@@ -8,30 +8,29 @@ import (
 	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// defaultShell 当前为单会话 PowerShell；v2.0 多 Tab 时改为按 tabID 管理的进程池。
 const defaultShell = "powershell.exe"
 
-// PtyManager 用 Mutex 保护、持有单个 ConPty 会话。
+// PtyManager 管理多个 PTY 会话，每个 Tab 对应一个，以 id 为键。
 type PtyManager struct {
-	ctx context.Context
-	mu  sync.Mutex
-	pty *conpty.ConPty
+	ctx  context.Context
+	mu   sync.Mutex
+	ptys map[string]*conpty.ConPty
 }
 
-// NewPtyManager 创建管理器，ctx 用于向前端发送 pty:data 事件。
 func NewPtyManager(ctx context.Context) *PtyManager {
-	return &PtyManager{ctx: ctx}
+	return &PtyManager{
+		ctx:  ctx,
+		ptys: make(map[string]*conpty.ConPty),
+	}
 }
 
-// Start (重新)启动 powershell.exe，并用 goroutine 持续抽取 PTY 输出。
-func (m *PtyManager) Start(cols, rows int) error {
+func (m *PtyManager) Start(id string, cols, rows int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// 已有会话则先关闭，旧的 pump goroutine 会在 Read 出错后自行退出。
-	if m.pty != nil {
-		m.pty.Close()
-		m.pty = nil
+	if existing, ok := m.ptys[id]; ok {
+		existing.Close()
+		delete(m.ptys, id)
 	}
 
 	if cols <= 0 {
@@ -45,20 +44,19 @@ func (m *PtyManager) Start(cols, rows int) error {
 	if err != nil {
 		return err
 	}
-	m.pty = pty
-
-	go m.pump(pty)
+	m.ptys[id] = pty
+	go m.pump(id, pty)
 	return nil
 }
 
-// pump 持续读取 PTY 输出并转发到前端（pty:data）。pty 由参数传入，
-// 避免重启会话后误用新句柄。
-func (m *PtyManager) pump(pty *conpty.ConPty) {
+// pump 持续读取 PTY 输出，通过 pty:data:{id} 事件转发到前端。
+func (m *PtyManager) pump(id string, pty *conpty.ConPty) {
 	buf := make([]byte, 4096)
+	event := "pty:data:" + id
 	for {
 		n, err := pty.Read(buf)
 		if n > 0 {
-			wruntime.EventsEmit(m.ctx, "pty:data", string(buf[:n]))
+			wruntime.EventsEmit(m.ctx, event, string(buf[:n]))
 		}
 		if err != nil {
 			return
@@ -66,31 +64,39 @@ func (m *PtyManager) pump(pty *conpty.ConPty) {
 	}
 }
 
-// Write 把键盘输入/粘贴写入 PTY。
-func (m *PtyManager) Write(data string) {
+func (m *PtyManager) Write(id string, data string) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.pty != nil {
-		_, _ = m.pty.Write([]byte(data))
+	pty, ok := m.ptys[id]
+	m.mu.Unlock()
+	if ok && pty != nil {
+		_, _ = pty.Write([]byte(data))
 	}
 }
 
-// Resize 同步 PTY 尺寸（分隔线拖动/窗口缩放后必须调用，否则输出换行错乱）。
-func (m *PtyManager) Resize(cols, rows int) error {
+func (m *PtyManager) Resize(id string, cols, rows int) error {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.pty == nil {
+	pty, ok := m.ptys[id]
+	m.mu.Unlock()
+	if !ok || pty == nil {
 		return nil
 	}
-	return m.pty.Resize(cols, rows)
+	return pty.Resize(cols, rows)
 }
 
-// Close 释放 PTY，进程退出时调用。
-func (m *PtyManager) Close() {
+func (m *PtyManager) Close(id string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if m.pty != nil {
-		m.pty.Close()
-		m.pty = nil
+	if pty, ok := m.ptys[id]; ok {
+		pty.Close()
+		delete(m.ptys, id)
 	}
+}
+
+func (m *PtyManager) CloseAll() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, pty := range m.ptys {
+		pty.Close()
+	}
+	m.ptys = make(map[string]*conpty.ConPty)
 }

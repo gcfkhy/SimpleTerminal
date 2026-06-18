@@ -27,13 +27,15 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.pty = NewPtyManager(ctx)
 
-	// 监听前端键盘输入/粘贴（pty:input），写入 PTY。
-	wruntime.EventsOn(ctx, "pty:input", func(optionalData ...interface{}) {
-		if len(optionalData) == 0 {
+	// 监听前端键盘输入/粘贴（pty:input），参数为 (tabId, data)。
+	wruntime.EventsOn(ctx, "pty:input", func(args ...interface{}) {
+		if len(args) < 2 {
 			return
 		}
-		if s, ok := optionalData[0].(string); ok {
-			a.pty.Write(s)
+		id, ok1 := args[0].(string)
+		data, ok2 := args[1].(string)
+		if ok1 && ok2 {
+			a.pty.Write(id, data)
 		}
 	})
 
@@ -45,21 +47,26 @@ func (a *App) startup(ctx context.Context) {
 	}()
 }
 
-// shutdown 在应用退出时调用，释放 PTY 进程。
+// shutdown 在应用退出时调用，释放所有 PTY 进程。
 func (a *App) shutdown(ctx context.Context) {
 	if a.pty != nil {
-		a.pty.Close()
+		a.pty.CloseAll()
 	}
 }
 
-// StartPty (重新)启动 PowerShell 会话。
-func (a *App) StartPty(cols, rows int) error {
-	return a.pty.Start(cols, rows)
+// StartPty (重新)启动指定 Tab 的 PowerShell 会话。
+func (a *App) StartPty(id string, cols, rows int) error {
+	return a.pty.Start(id, cols, rows)
 }
 
-// ResizePty 同步 PTY 尺寸。
-func (a *App) ResizePty(cols, rows int) error {
-	return a.pty.Resize(cols, rows)
+// ResizePty 同步指定 Tab 的 PTY 尺寸。
+func (a *App) ResizePty(id string, cols, rows int) error {
+	return a.pty.Resize(id, cols, rows)
+}
+
+// ClosePty 关闭指定 Tab 的 PTY 进程（Tab 关闭时调用）。
+func (a *App) ClosePty(id string) {
+	a.pty.Close(id)
 }
 
 // FileEntry 目录项。

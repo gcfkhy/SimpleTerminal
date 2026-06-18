@@ -7,7 +7,6 @@ import '@xterm/xterm/css/xterm.css'
 import { EventsOn, EventsEmit } from '../../wailsjs/runtime'
 import { StartPty, ResizePty } from '../../wailsjs/go/main/App'
 
-// Catppuccin Mocha 终端配色
 const catppuccinMocha: ITheme = {
   background: '#1e1e2e',
   foreground: '#cdd6f4',
@@ -32,13 +31,13 @@ const catppuccinMocha: ITheme = {
   brightWhite: '#a6adc8',
 }
 
-export function useTerminal() {
+export function useTerminal(id: string) {
   let term: Terminal | null = null
   let fitAddon: FitAddon | null = null
   let resizeObserver: ResizeObserver | null = null
   let cleanupData: (() => void) | null = null
 
-  function mount(el: HTMLElement) {
+  function mount(el: HTMLElement, initialDir?: string) {
     term = new Terminal({
       fontFamily: '"SF Mono", Consolas, "MiSans", monospace',
       fontSize: 14,
@@ -50,29 +49,37 @@ export function useTerminal() {
     fitAddon = new FitAddon()
     term.loadAddon(fitAddon)
     term.open(el)
-
-    // WebGL 渲染（不花屏）；上下文丢失或不支持时回退 Canvas
     loadRenderer(term)
-
     fitAddon.fit()
 
-    // Go → 前端：原始终端输出
-    cleanupData = EventsOn('pty:data', (data: string) => {
+    // 监听当前 Tab 的 PTY 输出
+    cleanupData = EventsOn(`pty:data:${id}`, (data: string) => {
       term?.write(data)
     })
-    // 前端 → Go：键盘输入/粘贴
-    term.onData((data) => EventsEmit('pty:input', data))
 
-    // 启动 PTY 会话，初始尺寸用 fit 后的 cols/rows
-    void StartPty(term.cols, term.rows)
+    // 键盘输入发送 (tabId, data) 两个参数
+    term.onData((data) => EventsEmit('pty:input', id, data))
 
-    // 容器尺寸变化（分隔线拖动/窗口缩放）→ fit → 同步 PTY 尺寸
+    // 启动 PTY，完成后发送初始 cd
+    void StartPty(id, term.cols, term.rows).then(() => {
+      if (initialDir) {
+        EventsEmit('pty:input', id, `cd "${initialDir}"\r`)
+      }
+    })
+
     resizeObserver = new ResizeObserver(() => {
-      if (!term || !fitAddon) return
+      if (!term || !fitAddon || el.offsetWidth === 0) return
       fitAddon.fit()
-      void ResizePty(term.cols, term.rows)
+      void ResizePty(id, term.cols, term.rows)
     })
     resizeObserver.observe(el)
+  }
+
+  // 切换到此 Tab 时由外部调用，确保终端尺寸正确
+  function fit() {
+    if (!fitAddon || !term) return
+    fitAddon.fit()
+    void ResizePty(id, term.cols, term.rows)
   }
 
   function loadRenderer(t: Terminal) {
@@ -80,19 +87,11 @@ export function useTerminal() {
       const webgl = new WebglAddon()
       webgl.onContextLoss(() => {
         webgl.dispose()
-        try {
-          t.loadAddon(new CanvasAddon())
-        } catch {
-          /* 回退失败则使用默认 DOM 渲染 */
-        }
+        try { t.loadAddon(new CanvasAddon()) } catch { /* DOM fallback */ }
       })
       t.loadAddon(webgl)
     } catch {
-      try {
-        t.loadAddon(new CanvasAddon())
-      } catch {
-        /* 使用默认 DOM 渲染 */
-      }
+      try { t.loadAddon(new CanvasAddon()) } catch { /* DOM fallback */ }
     }
   }
 
@@ -110,5 +109,5 @@ export function useTerminal() {
     fitAddon = null
   }
 
-  return { mount, getTerm, dispose }
+  return { mount, getTerm, dispose, fit }
 }
