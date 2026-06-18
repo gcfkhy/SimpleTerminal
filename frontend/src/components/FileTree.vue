@@ -1,133 +1,167 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { OpenFolderDialog } from '../../wailsjs/go/main/App'
 import { useFileTree } from '../composables/useFileTree'
-import { getFileIcon } from '../composables/useFileIcon'
+import { useFileIcon } from '../composables/useFileIcon'
+import type { main } from '../../wailsjs/go/models'
 
-const { entries, currentPath, parentDir, loadDir, cdToDir } = useFileTree()
+const { currentPath, entries, error, init, goUp, openFolderDialog, open } = useFileTree()
+const { getIcon, fallback } = useFileIcon()
 
 onMounted(() => {
-  const saved = localStorage.getItem('lastDir')
-  if (saved) loadDir(saved)
+  void init()
 })
 
-async function selectFolder() {
-  const dir = await OpenFolderDialog()
-  if (dir) loadDir(dir)
+function onDragStart(e: DragEvent, entry: main.FileEntry) {
+  if (!e.dataTransfer) return
+  e.dataTransfer.setData('text/path', entry.path)
+  e.dataTransfer.setData('text/plain', entry.path)
+  e.dataTransfer.effectAllowed = 'copy'
+}
+
+function onIconError(e: Event, isDir: boolean) {
+  const img = e.target as HTMLImageElement
+  // 避免回退图标再次出错导致死循环
+  if (img.dataset.fallback) return
+  img.dataset.fallback = '1'
+  img.src = fallback(isDir)
 }
 </script>
 
 <template>
-  <div class="file-tree">
-    <div class="tree-header" :title="currentPath">
-      {{ currentPath || '未选择目录' }}
+  <div class="filetree">
+    <div class="path-bar">
+      <button class="icon-btn" title="上级目录" @click="goUp">⬆</button>
+      <span class="path-text" :title="currentPath">{{ currentPath || '…' }}</span>
     </div>
-    <div class="tree-body">
-      <div
-        v-if="parentDir"
-        class="tree-entry dir"
-        @click="loadDir(parentDir!)"
-      >
-        <img :src="getFileIcon('..', true)" class="icon" alt="" @error="(e) => (e.target as HTMLImageElement).src = getFileIcon('', true)" />
-        <span class="name">..</span>
-      </div>
+
+    <div class="list">
+      <div v-if="error" class="error">{{ error }}</div>
       <div
         v-for="entry in entries"
         :key="entry.path"
-        class="tree-entry"
+        class="item"
         :class="{ dir: entry.isDir }"
         draggable="true"
-        @click="entry.isDir ? cdToDir(entry.path) : undefined"
-        @dragstart="(e) => e.dataTransfer?.setData('text/path', entry.path)"
+        :title="entry.name"
+        @click="open(entry)"
+        @dragstart="onDragStart($event, entry)"
       >
         <img
-          :src="getFileIcon(entry.name, entry.isDir)"
           class="icon"
+          :src="getIcon(entry.name, entry.isDir)"
           alt=""
-          @error="(e) => (e.target as HTMLImageElement).src = `https://cdn.jsdelivr.net/gh/material-extensions/vscode-material-icon-theme@main/icons/${entry.isDir ? 'folder' : 'file'}.svg`"
+          draggable="false"
+          @error="onIconError($event, entry.isDir)"
         />
         <span class="name">{{ entry.name }}</span>
       </div>
     </div>
-    <button class="select-btn" @click="selectFolder">选择目录</button>
+
+    <div class="footer">
+      <button class="pick-btn" @click="openFolderDialog">选择目录</button>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.file-tree {
+.filetree {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  background: #181825;
-  border-right: 1px solid #313244;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.tree-header {
-  padding: 8px 12px;
-  font-size: 11px;
-  color: #a6adc8;
-  background: #1e1e2e;
-  border-bottom: 1px solid #313244;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-shrink: 0;
-}
-
-.tree-body {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.tree-entry {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  font-size: 13px;
-  color: #cdd6f4;
-  white-space: nowrap;
-  overflow: hidden;
-  cursor: default;
+  height: 100%;
+  background: var(--ctp-mantle);
   user-select: none;
 }
 
-.tree-entry:hover {
-  background: #313244;
+.path-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid var(--ctp-surface0);
+  flex: 0 0 auto;
 }
-
-.tree-entry.dir {
+.icon-btn {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: var(--ctp-surface0);
+  color: var(--ctp-text);
   cursor: pointer;
+  font-size: 13px;
+}
+.icon-btn:hover {
+  background: var(--ctp-surface1);
+}
+.path-text {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ctp-subtext0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
 }
 
+.list {
+  flex: 1 1 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0;
+}
+.error {
+  padding: 8px;
+  color: #f38ba8;
+  font-size: 12px;
+  word-break: break-all;
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.item:hover {
+  background: var(--ctp-surface0);
+}
 .icon {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  object-fit: contain;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  pointer-events: none;
 }
-
 .name {
+  font-size: 13px;
+  color: var(--ctp-text);
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-.select-btn {
-  margin: 8px;
-  padding: 6px 0;
-  background: #313244;
-  color: #cdd6f4;
-  border: 1px solid #45475a;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  flex-shrink: 0;
+.item.dir .name {
+  color: var(--ctp-lavender);
 }
 
-.select-btn:hover {
-  background: #45475a;
+.footer {
+  flex: 0 0 auto;
+  padding: 8px;
+  border-top: 1px solid var(--ctp-surface0);
+}
+.pick-btn {
+  width: 100%;
+  padding: 7px 0;
+  border: none;
+  border-radius: 6px;
+  background: var(--ctp-blue);
+  color: var(--ctp-crust);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pick-btn:hover {
+  background: var(--ctp-lavender);
 }
 </style>

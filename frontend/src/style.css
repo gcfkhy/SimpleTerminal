@@ -1,31 +1,49 @@
+:root {
+  /* Catppuccin Mocha */
+  --ctp-base: #1e1e2e;
+  --ctp-mantle: #181825;
+  --ctp-crust: #11111b;
+  --ctp-surface0: #313244;
+  --ctp-surface1: #45475a;
+  --ctp-text: #cdd6f4;
+  --ctp-subtext0: #a6adc8;
+  --ctp-overlay0: #6c7086;
+  --ctp-blue: #89b4fa;
+  --ctp-lavender: #b4befe;
+}
+
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
-html, body {
-  height: 100vh;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: var(--ctp-base);
+  color: var(--ctp-text);
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
+  font-size: 14px;
   overflow: hidden;
-  background: #1e1e2e;
-  color: #cdd6f4;
 }
 
 #app {
   height: 100vh;
-  overflow: hidden;
 }
 
+/* 自定义滚动条，融入 Catppuccin 主题 */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #181825;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #45475a;
-  border-radius: 3px;
+  background: var(--ctp-surface1);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #585b70;
+  background: var(--ctp-overlay0);
 }

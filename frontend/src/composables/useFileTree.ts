@@ -1,37 +1,65 @@
-import { ref, computed } from 'vue'
-import { ReadDir } from '../../wailsjs/go/main/App'
+import { ref } from 'vue'
+import { ReadDir, OpenFolderDialog, HomeDir } from '../../wailsjs/go/main/App'
 import { EventsEmit } from '../../wailsjs/runtime'
+import type { main } from '../../wailsjs/go/models'
 
-export interface FileEntry {
-  name: string
-  path: string
-  isDir: boolean
-}
-
-function getParentDir(p: string): string | null {
-  if (!p) return null
-  if (/^[A-Za-z]:\\?$/.test(p)) return null
-  const lastSep = Math.max(p.lastIndexOf('/'), p.lastIndexOf('\\'))
-  if (lastSep <= 0) return null
-  return p.substring(0, lastSep) || null
-}
+const LAST_DIR_KEY = 'lastDir'
 
 export function useFileTree() {
-  const entries = ref<FileEntry[]>([])
-  const currentPath = ref('')
-  const parentDir = computed(() => getParentDir(currentPath.value))
+  const currentPath = ref<string>('')
+  const entries = ref<main.FileEntry[]>([])
+  const error = ref<string>('')
 
-  async function loadDir(path: string) {
-    const result = await ReadDir(path)
-    entries.value = result || []
-    currentPath.value = path
-    localStorage.setItem('lastDir', path)
+  async function loadDir(path: string): Promise<boolean> {
+    try {
+      const list = await ReadDir(path)
+      entries.value = list ?? []
+      currentPath.value = path
+      error.value = ''
+      localStorage.setItem(LAST_DIR_KEY, path)
+      return true
+    } catch (e) {
+      error.value = String(e)
+      return false
+    }
   }
 
-  function cdToDir(path: string) {
-    EventsEmit('pty:input', `cd "${path}"\r`)
-    loadDir(path)
+  // 挂载时恢复上次目录，失败则回退到用户主目录
+  async function init() {
+    const last = localStorage.getItem(LAST_DIR_KEY)
+    if (last && (await loadDir(last))) return
+    try {
+      const home = await HomeDir()
+      await loadDir(home)
+    } catch (e) {
+      error.value = String(e)
+    }
   }
 
-  return { entries, currentPath, parentDir, loadDir, cdToDir }
+  // 上级目录（兼容 Windows 反斜杠/正斜杠，盘符根停止）
+  function goUp() {
+    const p = currentPath.value
+    if (!p) return
+    const normalized = p.replace(/[\\/]+$/, '')
+    const idx = Math.max(normalized.lastIndexOf('\\'), normalized.lastIndexOf('/'))
+    if (idx <= 0) return
+    let parent = normalized.slice(0, idx)
+    if (/^[a-zA-Z]:$/.test(parent)) parent += '\\' // "C:" → "C:\"
+    void loadDir(parent)
+  }
+
+  async function openFolderDialog() {
+    const picked = await OpenFolderDialog()
+    if (picked) await loadDir(picked)
+  }
+
+  // 点击：目录则进入并在终端 cd；文件不做处理（v2.0 预览面板再用）
+  function open(entry: main.FileEntry) {
+    if (entry.isDir) {
+      EventsEmit('pty:input', `cd "${entry.path}"\r`)
+      void loadDir(entry.path)
+    }
+  }
+
+  return { currentPath, entries, error, init, loadDir, goUp, openFolderDialog, open }
 }

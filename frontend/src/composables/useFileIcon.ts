@@ -1,132 +1,63 @@
-const BASE = 'https://cdn.jsdelivr.net/gh/material-extensions/vscode-material-icon-theme@main/icons'
+// 把文件名/扩展名映射到 Material Icon Theme 的 SVG（jsDelivr CDN 加载）。
+// <img @error> 会回退到通用文件/文件夹图标。
+const CDN = 'https://cdn.jsdelivr.net/gh/PKief/vscode-material-icon-theme/icons'
 
-const EXT: Record<string, string> = {
-  // Scripts / Languages
-  js: 'javascript', mjs: 'javascript', cjs: 'javascript',
-  ts: 'typescript', mts: 'typescript',
-  tsx: 'react_ts', jsx: 'react',
-  vue: 'vue', svelte: 'svelte',
-  py: 'python', pyw: 'python',
-  go: 'go',
-  rs: 'rust',
-  java: 'java', kt: 'kotlin', kts: 'kotlin',
-  swift: 'swift',
-  cpp: 'cpp', cc: 'cpp', cxx: 'cpp',
-  c: 'c', h: 'h', hpp: 'hpp',
-  cs: 'csharp',
-  rb: 'ruby',
-  php: 'php',
-  sh: 'shell', bash: 'shell', zsh: 'shell', fish: 'shell',
-  ps1: 'powershell', psm1: 'powershell',
-  lua: 'lua',
-  r: 'r',
-  dart: 'dart',
-  scala: 'scala',
-  zig: 'zig',
-  ex: 'elixir', exs: 'elixir',
-  // Web
-  html: 'html', htm: 'html',
-  css: 'css',
-  scss: 'scss', sass: 'sass', less: 'less',
-  svg: 'svg',
-  // Data / Config
-  json: 'json', jsonc: 'json',
-  yaml: 'yaml', yml: 'yaml',
-  toml: 'toml',
-  xml: 'xml',
-  csv: 'table',
-  sql: 'sql',
-  // Docs
-  md: 'markdown', mdx: 'mdx',
-  txt: 'text',
-  pdf: 'pdf',
-  // Images
-  png: 'image', jpg: 'image', jpeg: 'image',
-  gif: 'image', webp: 'image', ico: 'image', bmp: 'image',
-  // Archives
-  zip: 'zip', tar: 'zip', gz: 'zip', '7z': 'zip', rar: 'zip',
-  // Misc
-  exe: 'exe', dll: 'binary',
-  wasm: 'wasm',
-  lock: 'lock',
-  log: 'log',
+const FILE_FALLBACK = `${CDN}/file.svg`
+const FOLDER_FALLBACK = `${CDN}/folder.svg`
+
+// 扩展名 → 图标名
+const extMap: Record<string, string> = {
+  ts: 'typescript', tsx: 'react_ts', js: 'javascript', jsx: 'react', mjs: 'javascript',
+  vue: 'vue', json: 'json', md: 'markdown', html: 'html', htm: 'html',
+  css: 'css', scss: 'sass', sass: 'sass', less: 'less',
+  go: 'go', py: 'python', rs: 'rust', java: 'java', kt: 'kotlin',
+  c: 'c', h: 'h', cpp: 'cpp', cc: 'cpp', hpp: 'hpp', cs: 'csharp',
+  php: 'php', rb: 'ruby', swift: 'swift', dart: 'dart', lua: 'lua',
+  sh: 'console', bash: 'console', zsh: 'console', ps1: 'powershell', bat: 'console', cmd: 'console',
+  yml: 'yaml', yaml: 'yaml', toml: 'toml', ini: 'settings', xml: 'xml', conf: 'settings',
+  sql: 'database', db: 'database', csv: 'table', tsv: 'table',
+  png: 'image', jpg: 'image', jpeg: 'image', gif: 'image', webp: 'image', bmp: 'image', ico: 'image', svg: 'svg',
+  pdf: 'pdf', doc: 'word', docx: 'word', xls: 'table', xlsx: 'table', ppt: 'powerpoint', pptx: 'powerpoint',
+  zip: 'zip', rar: 'zip', '7z': 'zip', tar: 'zip', gz: 'zip',
+  mp4: 'video', mkv: 'video', avi: 'video', mov: 'video', webm: 'video', flv: 'video',
+  mp3: 'audio', wav: 'audio', flac: 'audio', ogg: 'audio',
+  txt: 'document', log: 'log', exe: 'exe', dll: 'dll', lock: 'lock', env: 'tune',
 }
 
-const FILENAME: Record<string, string> = {
+// 完整文件名（小写）→ 图标名
+const nameMap: Record<string, string> = {
   'package.json': 'nodejs',
   'package-lock.json': 'nodejs',
   'tsconfig.json': 'tsconfig',
   'tsconfig.node.json': 'tsconfig',
-  '.env': 'env',
-  '.env.local': 'env',
-  '.gitignore': 'git',
-  '.gitattributes': 'git',
-  '.gitmodules': 'git',
-  'dockerfile': 'docker',
-  'docker-compose.yml': 'docker',
-  'docker-compose.yaml': 'docker',
-  'makefile': 'makefile',
-  'cargo.toml': 'rust',
-  'cargo.lock': 'rust',
-  'go.mod': 'go',
-  'go.sum': 'go',
-  'requirements.txt': 'python',
-  'pipfile': 'python',
-  'readme.md': 'readme',
-  'license': 'certificate',
-  'license.md': 'certificate',
   'vite.config.ts': 'vite',
   'vite.config.js': 'vite',
-  'wails.json': 'config',
+  '.gitignore': 'git',
+  '.gitattributes': 'git',
+  'go.mod': 'go-mod',
+  'go.sum': 'go-mod',
+  'readme.md': 'readme',
+  'license': 'certificate',
+  'license.txt': 'certificate',
+  'dockerfile': 'docker',
+  '.env': 'tune',
+  'wails.json': 'json',
 }
 
-const FOLDER: Record<string, string> = {
-  'src': 'folder-src',
-  'source': 'folder-src',
-  'node_modules': 'folder-node',
-  '.git': 'folder-git',
-  '.github': 'folder-github',
-  'dist': 'folder-dist',
-  'build': 'folder-build',
-  'out': 'folder-out',
-  'public': 'folder-public',
-  'assets': 'folder-resource',
-  'components': 'folder-components',
-  'views': 'folder-views',
-  'pages': 'folder-views',
-  'hooks': 'folder-hook',
-  'composables': 'folder-hook',
-  'utils': 'folder-utils',
-  'helpers': 'folder-utils',
-  'lib': 'folder-lib',
-  'libs': 'folder-lib',
-  'types': 'folder-typescript',
-  'interfaces': 'folder-typescript',
-  'tests': 'folder-test',
-  'test': 'folder-test',
-  '__tests__': 'folder-test',
-  'scripts': 'folder-scripts',
-  'styles': 'folder-styles',
-  'css': 'folder-styles',
-  'docs': 'folder-docs',
-  'doc': 'folder-docs',
-  'config': 'folder-config',
-  'configs': 'folder-config',
-  '.vscode': 'folder-vscode',
-  '.claude': 'folder-vscode',
-  'images': 'folder-images',
-  'img': 'folder-images',
-  'icons': 'folder-images',
-  'wailsjs': 'folder-js',
-}
-
-export function getFileIcon(name: string, isDir: boolean): string {
-  if (isDir) {
-    const icon = FOLDER[name.toLowerCase()] ?? 'folder'
-    return `${BASE}/${icon}.svg`
+export function useFileIcon() {
+  function getIcon(name: string, isDir: boolean): string {
+    if (isDir) return FOLDER_FALLBACK
+    const lower = name.toLowerCase()
+    if (nameMap[lower]) return `${CDN}/${nameMap[lower]}.svg`
+    const dot = lower.lastIndexOf('.')
+    const ext = dot >= 0 ? lower.slice(dot + 1) : ''
+    if (ext && extMap[ext]) return `${CDN}/${extMap[ext]}.svg`
+    return FILE_FALLBACK
   }
-  const lower = name.toLowerCase()
-  if (FILENAME[lower]) return `${BASE}/${FILENAME[lower]}.svg`
-  const ext = lower.includes('.') ? lower.split('.').pop()! : ''
-  return `${BASE}/${EXT[ext] ?? 'file'}.svg`
+
+  function fallback(isDir: boolean): string {
+    return isDir ? FOLDER_FALLBACK : FILE_FALLBACK
+  }
+
+  return { getIcon, fallback }
 }

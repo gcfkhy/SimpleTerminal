@@ -1,41 +1,49 @@
 <script setup lang="ts">
-const props = defineProps<{ currentWidth: number }>()
-const emit = defineEmits<{ resize: [width: number] }>()
+// 4px 可拖拽分隔线，向父组件发出每次移动的水平增量
+const emit = defineEmits<{ (e: 'resize', deltaX: number): void }>()
 
-let startX = 0
-let startWidth = 0
+let dragging = false
+let lastX = 0
 
-function onMousedown(e: MouseEvent) {
-  startX = e.clientX
-  startWidth = props.currentWidth
-  document.addEventListener('mousemove', onMousemove)
-  document.addEventListener('mouseup', onMouseup)
+function onMouseDown(e: MouseEvent) {
+  dragging = true
+  lastX = e.clientX
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+  window.addEventListener('mousemove', onMouseMove)
+  window.addEventListener('mouseup', onMouseUp)
 }
 
-function onMousemove(e: MouseEvent) {
-  emit('resize', startWidth + (e.clientX - startX))
+function onMouseMove(e: MouseEvent) {
+  if (!dragging) return
+  const delta = e.clientX - lastX
+  lastX = e.clientX
+  emit('resize', delta)
 }
 
-function onMouseup() {
-  document.removeEventListener('mousemove', onMousemove)
-  document.removeEventListener('mouseup', onMouseup)
+function onMouseUp() {
+  dragging = false
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  window.removeEventListener('mousemove', onMouseMove)
+  window.removeEventListener('mouseup', onMouseUp)
 }
 </script>
 
 <template>
-  <div class="divider" @mousedown="onMousedown" />
+  <div class="divider" @mousedown="onMouseDown"></div>
 </template>
 
 <style scoped>
 .divider {
+  flex: 0 0 4px;
   width: 4px;
-  background: #313244;
+  height: 100%;
   cursor: col-resize;
-  flex-shrink: 0;
-  transition: background 0.15s;
+  background: var(--ctp-surface0);
+  transition: background 0.15s ease;
 }
-.divider:hover,
-.divider:active {
-  background: #89b4fa;
+.divider:hover {
+  background: var(--ctp-blue);
 }
 </style>
