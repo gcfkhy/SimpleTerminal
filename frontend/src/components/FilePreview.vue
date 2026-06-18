@@ -220,6 +220,7 @@ watch(() => props.file, async (file) => {
   padding: 8px;
   font-family: 'SF Mono', Consolas, 'MiSans', monospace;
   font-size: 15px;
+  font-weight: 500;
   line-height: 1.5;
   white-space: pre;
   background: transparent !important;
