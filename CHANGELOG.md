@@ -7,6 +7,26 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [v1.2.0] · 2026-06-19
+
+### ✨ 新增 (Added)
+
+- **预览栏左右 / 上下布局切换** — 导航栏（标签栏）右侧新增两个布局图标，一键在两种布局间切换，当前布局蓝色高亮：
+  - **左右布局**：预览栏停靠在窗口右侧，与终端左右并排；
+  - **上下布局**：预览栏在上、终端在下，左侧文件树保持整列满高。
+- **拖拽无尺寸上限** — 移除预览栏原先的 700px 宽度上限；左右布局的宽度、上下布局的高度均可拖到任意大小（仅保留下限防止塌缩）。两种布局的尺寸各自独立记忆并持久化到 `localStorage`。
+
+---
+
+### ✨ Added
+
+- **Toggle the preview pane between side-by-side and stacked layouts** — Two layout icons on the right of the nav (tab) bar switch the preview pane with one click; the active layout is highlighted in blue:
+  - **Side-by-side**: the preview pane docks to the right of the terminal;
+  - **Stacked**: the preview sits on top with the terminal below, while the left file tree keeps its full height.
+- **No maximum drag size** — Removed the former 700px width cap on the preview pane; the width (side-by-side) and height (stacked) can be dragged to any size, keeping only a minimum to prevent collapse. Each layout remembers its own size, persisted to `localStorage`.
+
+---
+
 ## [v1.1.0] · 2026-06-19
 
 ![SimpleTerminal v1.1.0 截图 / screenshot](assets/screenshot.png)
