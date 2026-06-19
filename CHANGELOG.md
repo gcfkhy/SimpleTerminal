@@ -9,6 +9,11 @@ All notable changes to this project are documented in this file.
 
 ## [v1.1.0] · 2026-06-19
 
+![SimpleTerminal v1.1.0 截图 / screenshot](assets/screenshot.png)
+
+> 截图展示：终端 `cd` 后左侧文件树自动同步、标签栏的两个新建按钮（`+` 默认目录 / 📁 当前目录）。
+> The screenshot shows the file tree auto-syncing after a terminal `cd`, and the two new-tab buttons (`+` default dir / 📁 current dir).
+
 ### ✨ 新增 (Added)
 
 - **终端 `cd` 自动同步文件树** — 应用启动后、左侧尚未选择目录时，在终端里首次切换目录（`cd`）会自动把左侧文件树加载到该目录。当前路径通过解析 PowerShell 提示符识别，因此对**手动输入、粘贴、↑ 历史、`Tab` 补全**等各种输入方式都生效。一旦文件树有了内容，此自动同步即关闭，之后的 `cd` 不再改动文件树。
