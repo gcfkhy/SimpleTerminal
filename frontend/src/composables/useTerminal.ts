@@ -36,6 +36,11 @@ export function useTerminal(id: string) {
   let fitAddon: FitAddon | null = null
   let resizeObserver: ResizeObserver | null = null
   let cleanupData: (() => void) | null = null
+  // 缩放节流状态：rAF 合并每帧多次回调，防抖 ConPTY resize，记录上次发出的 cols/rows
+  let resizeRaf = 0
+  let lastCols = 0
+  let lastRows = 0
+  let ptyResizeTimer: ReturnType<typeof setTimeout> | undefined
 
   // 从 PowerShell 默认提示符 `PS <路径>>` 解析终端当前工作目录。
   // 直接观察 shell 输出的提示符（经 pty:data 回流）比捕获键盘输入可靠得多——
@@ -79,6 +84,8 @@ export function useTerminal(id: string) {
     term.open(el)
     loadRenderer(term)
     fitAddon.fit()
+    lastCols = term.cols
+    lastRows = term.rows
 
     // 监听当前 Tab 的 PTY 输出：写入终端，同时解析提示符以追踪 cwd 变化
     cleanupData = EventsOn(`pty:data:${id}`, (data: string) => {
@@ -96,18 +103,35 @@ export function useTerminal(id: string) {
       }
     })
 
+    // 缩放/拖拽时 ResizeObserver 会高频触发。用 rAF 把同一帧内的多次回调合并成一次
+    // fit()；ConPTY resize 较重，仅在 cols/rows 真正变化时、并做尾部防抖后再发 IPC，
+    // 避免每帧洪泛渲染与 Wails→Go 调用导致卡顿。
     resizeObserver = new ResizeObserver(() => {
-      if (!term || !fitAddon || el.offsetWidth === 0) return
-      fitAddon.fit()
-      void ResizePty(id, term.cols, term.rows)
+      if (resizeRaf) return
+      resizeRaf = requestAnimationFrame(() => {
+        resizeRaf = 0
+        if (!term || !fitAddon || el.offsetWidth === 0) return
+        fitAddon.fit()
+        if (term.cols === lastCols && term.rows === lastRows) return
+        lastCols = term.cols
+        lastRows = term.rows
+        clearTimeout(ptyResizeTimer)
+        ptyResizeTimer = setTimeout(() => {
+          if (term) void ResizePty(id, term.cols, term.rows)
+        }, 80)
+      })
     })
     resizeObserver.observe(el)
   }
 
   // 切换到此 Tab 时由外部调用，确保终端尺寸正确
+  // 切换到此 Tab 时由外部调用：离散事件，直接 fit；仅在尺寸真变化时同步 PTY。
   function fit() {
     if (!fitAddon || !term) return
     fitAddon.fit()
+    if (term.cols === lastCols && term.rows === lastRows) return
+    lastCols = term.cols
+    lastRows = term.rows
     void ResizePty(id, term.cols, term.rows)
   }
 
@@ -129,6 +153,9 @@ export function useTerminal(id: string) {
   }
 
   function dispose() {
+    if (resizeRaf) cancelAnimationFrame(resizeRaf)
+    resizeRaf = 0
+    clearTimeout(ptyResizeTimer)
     resizeObserver?.disconnect()
     resizeObserver = null
     cleanupData?.()

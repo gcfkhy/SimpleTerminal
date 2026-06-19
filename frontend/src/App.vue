@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
 import FileTree from './components/FileTree.vue'
 import FilePreview from './components/FilePreview.vue'
 import Divider from './components/Divider.vue'
@@ -49,16 +49,57 @@ const savedPreviewH = Number(localStorage.getItem(PREVIEW_H_KEY))
 const previewHeight = ref<number>(Number.isFinite(savedPreviewH) && savedPreviewH > 0
   ? Math.max(PREVIEW_MIN_H, savedPreviewH) : 260)
 
-function onPreviewResize(delta: number) {
-  // 分隔线在预览栏左侧，向左拖（delta 负）→ 预览变宽
-  previewWidth.value = Math.max(PREVIEW_MIN_W, previewWidth.value - delta)
-  localStorage.setItem(PREVIEW_W_KEY, String(previewWidth.value))
-}
+// ── 自适应视口 ───────────────────────────────────────────
+// 测量 .split 容器，渲染时把预览尺寸钳进可用空间，保证另一侧（终端）至少保留
+// TERMINAL_MIN，避免小窗口下某一侧被挤成 0；窗口放大时预览可回到用户期望尺寸。
+const TERMINAL_MIN = 120
+const DIVIDER_SIZE = 4
 
-function onPreviewHeightResize(delta: number) {
-  // 分隔线在预览栏下方，向下拖（delta 正）→ 预览变高
-  previewHeight.value = Math.max(PREVIEW_MIN_H, previewHeight.value + delta)
-  localStorage.setItem(PREVIEW_H_KEY, String(previewHeight.value))
+const splitRef = ref<HTMLElement | null>(null)
+const splitW = ref(0)
+const splitH = ref(0)
+let splitRO: ResizeObserver | null = null
+
+onMounted(() => {
+  const el = splitRef.value
+  if (!el) return
+  splitW.value = el.clientWidth
+  splitH.value = el.clientHeight
+  splitRO = new ResizeObserver(() => {
+    splitW.value = el.clientWidth
+    splitH.value = el.clientHeight
+  })
+  splitRO.observe(el)
+})
+onBeforeUnmount(() => {
+  splitRO?.disconnect()
+  splitRO = null
+})
+
+// 预览在某方向上的最大可用尺寸（容器减终端最小值与分隔条）；容器未测量时不设上限。
+function previewMax(container: number, min: number) {
+  return container > 0 ? Math.max(min, container - TERMINAL_MIN - DIVIDER_SIZE) : Infinity
+}
+// 渲染用的有效尺寸：用户期望值钳进当前视口；窗口放大时可回到期望值。
+const effPreviewWidth = computed(() =>
+  Math.min(Math.max(PREVIEW_MIN_W, previewWidth.value), previewMax(splitW.value, PREVIEW_MIN_W)))
+const effPreviewHeight = computed(() =>
+  Math.min(Math.max(PREVIEW_MIN_H, previewHeight.value), previewMax(splitH.value, PREVIEW_MIN_H)))
+
+// 预览栏与终端共用同一条分隔条：左右布局拖宽度、上下布局拖高度。
+// 拖动上限钳到当前视口（终端至少留 TERMINAL_MIN），分隔条拖到边缘即停。
+function onPreviewResize(delta: number) {
+  if (previewLayout.value === 'horizontal') {
+    // 分隔条在预览栏左侧，向左拖（delta 负）→ 预览变宽
+    const max = previewMax(splitW.value, PREVIEW_MIN_W)
+    previewWidth.value = Math.min(max, Math.max(PREVIEW_MIN_W, previewWidth.value - delta))
+    localStorage.setItem(PREVIEW_W_KEY, String(previewWidth.value))
+  } else {
+    // 分隔条在预览栏下方，向下拖（delta 正）→ 预览变高
+    const max = previewMax(splitH.value, PREVIEW_MIN_H)
+    previewHeight.value = Math.min(max, Math.max(PREVIEW_MIN_H, previewHeight.value + delta))
+    localStorage.setItem(PREVIEW_H_KEY, String(previewHeight.value))
+  }
 }
 
 // ── Tab 管理 ──────────────────────────────────────────────
@@ -130,7 +171,7 @@ function onTerminalCwd(path: string) {
       <FileTree />
     </div>
     <Divider @resize="onResize" />
-    <div class="terminal-area">
+    <div class="main-area">
       <TabBar
         :tabs="tabs"
         :activeId="activeTabId"
@@ -142,42 +183,45 @@ function onTerminalCwd(path: string) {
         @rename="renameTab"
         @set-layout="setPreviewLayout"
       />
-      <!-- 上下布局：预览栏在上方，终端在下面（左侧文件树保持满高）-->
-      <template v-if="selectedFile && previewLayout === 'vertical'">
-        <FilePreview
-          :file="selectedFile"
-          placement="top"
-          :style="{ height: previewHeight + 'px' }"
-          @close="selectedFile = null"
-        />
-        <Divider orientation="horizontal" @resize="onPreviewHeightResize" />
-      </template>
-      <div class="terminal-panels">
-        <div
-          v-for="tab in tabs"
-          :key="tab.id"
-          class="terminal-slot"
-          :class="{ active: tab.id === activeTabId }"
-        >
-          <Terminal
-            :tabId="tab.id"
-            :isActive="tab.id === activeTabId"
-            :initialDir="tab.initialDir"
-            @cwd="onTerminalCwd"
-          />
+      <!--
+        终端 + 预览栏共用一个容器：左右布局 → flex row，上下布局 → flex column。
+        预览栏始终是同一个 FilePreview 实例（上下布局仅靠 CSS order 反转到顶部），
+        切换布局只改 CSS、不卸载组件，因此不会重新读取/高亮文件，切换即时完成。
+      -->
+      <div ref="splitRef" class="split" :class="previewLayout">
+        <div class="terminal-panels">
+          <div
+            v-for="tab in tabs"
+            :key="tab.id"
+            class="terminal-slot"
+            :class="{ active: tab.id === activeTabId }"
+          >
+            <Terminal
+              :tabId="tab.id"
+              :isActive="tab.id === activeTabId"
+              :initialDir="tab.initialDir"
+              @cwd="onTerminalCwd"
+            />
+          </div>
         </div>
+        <template v-if="selectedFile">
+          <Divider
+            class="preview-divider"
+            :orientation="previewLayout === 'horizontal' ? 'vertical' : 'horizontal'"
+            @resize="onPreviewResize"
+          />
+          <FilePreview
+            class="preview-pane"
+            :file="selectedFile"
+            :placement="previewLayout === 'horizontal' ? 'right' : 'top'"
+            :style="previewLayout === 'horizontal'
+              ? { width: effPreviewWidth + 'px' }
+              : { height: effPreviewHeight + 'px' }"
+            @close="selectedFile = null"
+          />
+        </template>
       </div>
     </div>
-    <!-- 左右布局：预览栏在最右侧 -->
-    <template v-if="selectedFile && previewLayout === 'horizontal'">
-      <Divider @resize="onPreviewResize" />
-      <FilePreview
-        :file="selectedFile"
-        placement="right"
-        :style="{ width: previewWidth + 'px' }"
-        @close="selectedFile = null"
-      />
-    </template>
   </div>
 </template>
 
@@ -193,15 +237,30 @@ function onTerminalCwd(path: string) {
   height: 100%;
   overflow: hidden;
 }
-.terminal-area {
+.main-area {
   flex: 1 1 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
   height: 100%;
 }
+/* 终端 + 预览栏的可切换容器：左右=row，上下=column */
+.split {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+.split.horizontal { flex-direction: row; }
+.split.vertical { flex-direction: column; }
+/* 上下布局：预览在上、终端在下——保持 DOM 顺序不变，仅用 order 反转 */
+.split.vertical .preview-pane { order: 0; }
+.split.vertical .preview-divider { order: 1; }
+.split.vertical .terminal-panels { order: 2; }
+
 .terminal-panels {
   flex: 1 1 0;
+  min-width: 0;
   min-height: 0;
   position: relative;
 }

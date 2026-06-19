@@ -7,6 +7,24 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [v1.2.1] · 2026-06-19
+
+### 🐛 修复 (Fixed)
+
+- **缩放窗口卡顿** — 终端的 `ResizeObserver` 不再每次回调都同步 `fit()` + ConPTY resize：用 `requestAnimationFrame` 合并每帧多次回调，且仅在终端行列数真正变化时、经 80ms 防抖后再发起 PTY resize，消除缩放时的渲染 / IPC 洪泛。
+- **切换布局卡顿** — 终端与预览栏改为共用同一容器、预览栏始终是同一个组件实例（仅靠 CSS 反转方向），切换左右 / 上下布局不再卸载重建预览栏，因而不再重新读取与高亮文件，切换瞬间完成。
+- **小窗口下布局不自适应** — 预览栏渲染尺寸现在会按当前视口钳制，始终为终端保留至少 120px，避免非最大化窗口下某一侧被挤成 0；窗口放大时预览恢复到用户设定尺寸。
+
+---
+
+### 🐛 Fixed
+
+- **Laggy window resizing** — The terminal's `ResizeObserver` no longer runs `fit()` + a ConPTY resize on every callback: callbacks within a frame are coalesced via `requestAnimationFrame`, and the PTY resize is sent only when the terminal's columns/rows actually change, after an 80 ms debounce — eliminating the render / IPC flood during resize.
+- **Laggy layout switching** — The terminal and preview pane now share one container and the preview is always the same component instance (only its direction is flipped via CSS), so toggling between side-by-side and stacked layouts no longer unmounts/recreates the preview — the file is not re-read or re-highlighted, and switching is instant.
+- **Layout not adapting in small windows** — The preview pane's rendered size is now clamped to the current viewport, always reserving at least 120 px for the terminal, so neither pane collapses to zero in a non-maximized window; the preview returns to your chosen size when the window grows.
+
+---
+
 ## [v1.2.0] · 2026-06-19
 
 ### ✨ 新增 (Added)
