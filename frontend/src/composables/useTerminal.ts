@@ -4,7 +4,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import { WebglAddon } from '@xterm/addon-webgl'
 import { CanvasAddon } from '@xterm/addon-canvas'
 import '@xterm/xterm/css/xterm.css'
-import { EventsOn, EventsEmit } from '../../wailsjs/runtime'
+import { EventsOn, EventsEmit, ClipboardSetText } from '../../wailsjs/runtime'
 import { StartPty, ResizePty } from '../../wailsjs/go/main/App'
 
 const catppuccinMocha: ITheme = {
@@ -91,6 +91,33 @@ export function useTerminal(id: string) {
     cleanupData = EventsOn(`pty:data:${id}`, (data: string) => {
       term?.write(data)
       detectCwd(data, onCwdChange)
+    })
+
+    // Ctrl+V / Ctrl+C 快捷键处理（仅 keydown、仅 Ctrl 且非 Alt 时介入）。
+    term.attachCustomKeyEventHandler((e) => {
+      if (e.type !== 'keydown' || !e.ctrlKey || e.altKey) return true
+
+      // Ctrl+V 粘贴：xterm 默认把 Ctrl+V 当控制字符 \x16(SYN)发给程序。PowerShell 的
+      // PSReadLine 自己把 \x16 绑成了读剪贴板粘贴所以能用，但 claude 等 TUI 不认 \x16，
+      // 表现为“按 Ctrl+V 没反应”。返回 false 让 xterm 既不发 \x16 也不 preventDefault，
+      // 浏览器随即触发原生 paste 事件，由 xterm 按 bracketed paste 正确处理——与右键菜单
+      // 粘贴同一条路径（已验证在 claude 中可用）。
+      if (e.key === 'v' || e.key === 'V') return false
+
+      // Ctrl+C 复制：终端里 Ctrl+C 默认是中断信号(\x03)，不能直接抢走。仅当有选中文本
+      // 时复制选区（用 Wails Go 侧剪贴板，打包后的 wails:// 非安全上下文也可靠），并返回
+      // false 不发 \x03；没有选中时返回 true，照常发中断信号以打断程序。与 Windows
+      // Terminal 行为一致。
+      if (e.key === 'c' || e.key === 'C') {
+        const sel = term?.getSelection()
+        if (sel) {
+          void ClipboardSetText(sel)
+          return false
+        }
+        return true
+      }
+
+      return true
     })
 
     // 键盘输入发送 (tabId, data) 两个参数

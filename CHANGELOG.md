@@ -7,6 +7,22 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [v1.2.2] · 2026-06-19
+
+### 🐛 修复 (Fixed)
+
+- **Ctrl+V 粘贴在 claude 等 TUI 程序中失效** — xterm 默认把 Ctrl+V 当控制字符 `\x16` 发给程序，PowerShell 靠 PSReadLine 自行把 `\x16` 绑成粘贴才碰巧能用，而 claude 等 TUI 不认 `\x16`，表现为「按 Ctrl+V 没反应」。现在拦截 Ctrl+V，改走浏览器原生粘贴（与右键菜单同一条路径，正确携带 bracketed paste），在 PowerShell / claude 等各类程序中都能粘贴。
+- **Ctrl+C 复制终端选中内容** — 选中文本时 Ctrl+C 将选区复制到剪贴板（经 Wails Go 侧剪贴板，打包后的 `wails://` 非安全上下文也可靠）；未选中文本时仍照常发送中断信号（SIGINT），不影响打断正在运行的程序。行为与 Windows Terminal 一致。
+
+---
+
+### 🐛 Fixed
+
+- **Ctrl+V paste did nothing in TUI apps like claude** — xterm sends Ctrl+V to the program as the control char `\x16`; PowerShell only worked because PSReadLine binds `\x16` to paste, while TUIs such as claude ignore it ("Ctrl+V does nothing"). Ctrl+V is now intercepted and routed through the browser's native paste — the same path as the right-click menu, correctly carrying bracketed paste — so pasting works across PowerShell, claude, and other programs.
+- **Ctrl+C copies the terminal selection** — With text selected, Ctrl+C copies the selection to the clipboard (via the Wails Go-side clipboard, reliable even in the packaged `wails://` non-secure context); with nothing selected it still sends the interrupt signal (SIGINT) as before, so interrupting a running program is unaffected. Matches Windows Terminal behavior.
+
+---
+
 ## [v1.2.1] · 2026-06-19
 
 ### 🐛 修复 (Fixed)
