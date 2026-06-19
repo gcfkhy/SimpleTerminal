@@ -9,13 +9,17 @@ const props = defineProps<{
   initialDir?: string
 }>()
 
+const emit = defineEmits<{
+  cwd: [path: string]
+}>()
+
 const containerRef = ref<HTMLDivElement | null>(null)
 const { mount, getTerm, dispose, fit } = useTerminal(props.tabId)
 let cleanupDrag: (() => void) | null = null
 
 onMounted(() => {
   if (!containerRef.value) return
-  mount(containerRef.value, props.initialDir)
+  mount(containerRef.value, props.initialDir, (path) => emit('cwd', path))
   cleanupDrag = useDragToTerminal(containerRef.value, getTerm)
 })
 

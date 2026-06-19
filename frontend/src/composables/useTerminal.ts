@@ -37,7 +37,35 @@ export function useTerminal(id: string) {
   let resizeObserver: ResizeObserver | null = null
   let cleanupData: (() => void) | null = null
 
-  function mount(el: HTMLElement, initialDir?: string) {
+  // 从 PowerShell 默认提示符 `PS <路径>>` 解析终端当前工作目录。
+  // 直接观察 shell 输出的提示符（经 pty:data 回流）比捕获键盘输入可靠得多——
+  // 后者会被粘贴(括号粘贴整段以 ESC 起始)、↑历史/Tab 补全(文本由 PSReadLine 在
+  // shell 侧注入、不经 onData)绕过。提示符则反映真实 cwd，对所有输入方式都成立。
+  let cwdTail = ''
+  let lastCwd: string | null = null
+  function detectCwd(data: string, onCwdChange?: (path: string) => void) {
+    if (!onCwdChange) return
+    // 滚动尾缓冲：提示符可能被分块切断，留一段上下文保证能完整匹配
+    cwdTail = (cwdTail + data).slice(-2048)
+    // 去除 ANSI/OSC 转义（窗口标题、光标/颜色控制），只留纯文本再匹配
+    const plain = cwdTail
+      .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, '') // OSC（如设置窗口标题）
+      .replace(/\x1b[@-Z\\-_]/g, '')                     // 双字符转义
+      .replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, '')         // CSI（颜色/光标移动）
+    // 取最后一个提示符里的盘符路径（PS E:\... 、PS C:\... 等）
+    const re = /PS\s+([A-Za-z]:\\[^\r\n>]*?)\s*>/g
+    let m: RegExpExecArray | null
+    let found: string | null = null
+    while ((m = re.exec(plain)) !== null) found = m[1].replace(/\s+$/, '')
+    if (found === null) return
+    if (lastCwd === null) { lastCwd = found; return } // 首个提示符=启动目录，静默记录为基准
+    if (found !== lastCwd) {
+      lastCwd = found
+      onCwdChange(found)
+    }
+  }
+
+  function mount(el: HTMLElement, initialDir?: string, onCwdChange?: (path: string) => void) {
     term = new Terminal({
       fontFamily: '"SF Mono", Consolas, "MiSans", monospace',
       fontSize: 14,
@@ -52,9 +80,10 @@ export function useTerminal(id: string) {
     loadRenderer(term)
     fitAddon.fit()
 
-    // 监听当前 Tab 的 PTY 输出
+    // 监听当前 Tab 的 PTY 输出：写入终端，同时解析提示符以追踪 cwd 变化
     cleanupData = EventsOn(`pty:data:${id}`, (data: string) => {
       term?.write(data)
+      detectCwd(data, onCwdChange)
     })
 
     // 键盘输入发送 (tabId, data) 两个参数

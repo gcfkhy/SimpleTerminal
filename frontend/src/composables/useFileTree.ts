@@ -5,11 +5,13 @@ import type { main } from '../../wailsjs/go/models'
 const pickedDir   = ref('')
 const selectedFile = ref<main.FileEntry | null>(null)
 
-export function useFileTree() {
-  const currentPath = ref<string>('')
-  const entries = ref<main.FileEntry[]>([])
-  const error = ref<string>('')
+// 树只有一个，状态作为模块级单例共享：App.vue 与 FileTree.vue 拿到的是同一份，
+// 这样终端首个 cd 检测可以直接驱动树加载。
+const currentPath = ref<string>('')
+const entries = ref<main.FileEntry[]>([])
+const error = ref<string>('')
 
+export function useFileTree() {
   async function loadDir(path: string): Promise<boolean> {
     try {
       const list = await ReadDir(path)

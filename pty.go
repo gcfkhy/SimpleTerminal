@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"sync"
 
 	"github.com/UserExistsError/conpty"
@@ -40,7 +41,14 @@ func (m *PtyManager) Start(id string, cols, rows int) error {
 		rows = 24
 	}
 
-	pty, err := conpty.Start(defaultShell, conpty.ConPtyDimensions(cols, rows))
+	opts := []conpty.ConPtyOption{conpty.ConPtyDimensions(cols, rows)}
+	// 固定从用户主目录启动，让终端起始路径确定（与 Windows 默认一致），
+	// 也为前端解析首个相对路径 cd 提供可靠基准。
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		opts = append(opts, conpty.ConPtyWorkDir(home))
+	}
+
+	pty, err := conpty.Start(defaultShell, opts...)
 	if err != nil {
 		return err
 	}

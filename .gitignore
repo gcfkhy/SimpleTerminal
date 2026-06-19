@@ -30,3 +30,9 @@ desktop.ini
 # Temp / probe files
 _probe_*.txt
 *.tmp
+
+# Claude Code local config
+.claude/
+
+# Exported session transcripts (date-prefixed)
+20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*.txt

@@ -49,14 +49,20 @@ let counter = 1
 const tabs = ref<Tab[]>([{ id: 'tab-1', title: 'Terminal 1' }])
 const activeTabId = ref('tab-1')
 
-function addTab() {
+function addTab(initialDir?: string) {
   counter++
   const id = `tab-${counter}`
   tabs.value.push({
     id,
     title: `Terminal ${counter}`,
+    initialDir,
   })
   activeTabId.value = id
+}
+
+// 在「当前目录」（左侧文件树路径）新建标签页；树为空时退化为默认目录。
+function addTabHere() {
+  addTab(currentPath.value || undefined)
 }
 
 function closeTab(id: string) {
@@ -73,13 +79,26 @@ function activateTab(id: string) {
   activeTabId.value = id
 }
 
+function renameTab(id: string, title: string) {
+  const tab = tabs.value.find((t) => t.id === id)
+  if (tab) tab.title = title
+}
+
 // 选择目录后向当前活跃 Tab 发送 cd
-const { pickedDir, selectedFile } = useFileTree()
+const { pickedDir, selectedFile, currentPath, loadDir } = useFileTree()
 watch(pickedDir, (dir) => {
   if (dir) {
     EventsEmit('pty:input', activeTabId.value, `cd "${dir}"\r`)
   }
 })
+
+// 终端目录变化同步左侧树：仅当左侧树为空（未选过目录）时生效。
+// path 来自 PowerShell 提示符，已是解析好的真实绝对路径，直接 loadDir。
+// 命中后 loadDir 会填上 currentPath，gate 自动关闭，后续目录变化不再驱动树。
+function onTerminalCwd(path: string) {
+  if (currentPath.value !== '') return // 树已有内容，gate 关闭
+  void loadDir(path)
+}
 </script>
 
 <template>
@@ -93,8 +112,10 @@ watch(pickedDir, (dir) => {
         :tabs="tabs"
         :activeId="activeTabId"
         @add="addTab"
+        @add-here="addTabHere"
         @close="closeTab"
         @activate="activateTab"
+        @rename="renameTab"
       />
       <div class="terminal-panels">
         <div
@@ -107,6 +128,7 @@ watch(pickedDir, (dir) => {
             :tabId="tab.id"
             :isActive="tab.id === activeTabId"
             :initialDir="tab.initialDir"
+            @cwd="onTerminalCwd"
           />
         </div>
       </div>
