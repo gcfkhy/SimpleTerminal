@@ -5,13 +5,18 @@ interface Tab {
   id: string
   title: string
 }
-const props = defineProps<{ tabs: Tab[]; activeId: string }>()
+const props = defineProps<{
+  tabs: Tab[]
+  activeId: string
+  previewLayout: 'horizontal' | 'vertical'
+}>()
 const emit = defineEmits<{
   add: []
   addHere: []
   close: [id: string]
   activate: [id: string]
   rename: [id: string, title: string]
+  setLayout: [layout: 'horizontal' | 'vertical']
 }>()
 
 const scrollRef = ref<HTMLElement | null>(null)
@@ -109,6 +114,32 @@ function onWheel(e: WheelEvent) {
           @click.stop="emit('close', tab.id)"
         >×</span>
       </div>
+    </div>
+    <div class="layout-toggles">
+      <button
+        class="layout-btn"
+        :class="{ active: previewLayout === 'horizontal' }"
+        title="左右布局：预览栏在右侧"
+        @click="emit('setLayout', 'horizontal')"
+      >
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="14" rx="2"
+            fill="none" stroke="currentColor" stroke-width="1.6" />
+          <rect x="14.5" y="6.5" width="5" height="11" rx="1" fill="currentColor" />
+        </svg>
+      </button>
+      <button
+        class="layout-btn"
+        :class="{ active: previewLayout === 'vertical' }"
+        title="上下布局：预览栏在上、终端在下"
+        @click="emit('setLayout', 'vertical')"
+      >
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="14" rx="2"
+            fill="none" stroke="currentColor" stroke-width="1.6" />
+          <rect x="4.5" y="6.5" width="15" height="4.5" rx="1" fill="currentColor" />
+        </svg>
+      </button>
     </div>
   </div>
 </template>
@@ -210,5 +241,33 @@ function onWheel(e: WheelEvent) {
 .tab-close:hover {
   background: var(--ctp-surface1);
   color: var(--ctp-text);
+}
+
+/* ── 布局切换按钮 ───────────────────────────────────────── */
+.layout-toggles {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  border-left: 1px solid var(--ctp-surface0);
+}
+.layout-btn {
+  flex: 0 0 34px;
+  border: none;
+  background: transparent;
+  color: var(--ctp-subtext0);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.layout-btn:hover {
+  background: var(--ctp-surface0);
+  color: var(--ctp-text);
+}
+.layout-btn.active {
+  color: var(--ctp-blue);
+}
+.layout-btn svg {
+  display: block;
 }
 </style>

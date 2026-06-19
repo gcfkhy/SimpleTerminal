@@ -5,7 +5,10 @@ import { ReadFileText, ReadFileBase64 } from '../../wailsjs/go/main/App'
 import hljs from 'highlight.js'
 import { marked } from 'marked'
 
-const props = defineProps<{ file: main.FileEntry }>()
+const props = withDefaults(defineProps<{
+  file: main.FileEntry
+  placement?: 'right' | 'top'
+}>(), { placement: 'right' })
 const emit = defineEmits<{ close: [] }>()
 
 const imageExts = new Set(['png','jpg','jpeg','gif','webp','bmp','svg','ico'])
@@ -153,7 +156,7 @@ watch(() => props.file, async (file) => {
 </script>
 
 <template>
-  <div class="preview">
+  <div class="preview" :class="placement === 'top' ? 'preview--top' : 'preview--right'">
     <div class="preview-header">
       <span class="preview-name" :title="file.path">{{ file.name }}</span>
       <button class="preview-close" @click="emit('close')">×</button>
@@ -202,12 +205,18 @@ watch(() => props.file, async (file) => {
 <style scoped>
 .preview {
   flex: 0 0 auto;
-  height: 100%;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--ctp-surface0);
   background: var(--ctp-crust);
   overflow: hidden;
+}
+/* 左右布局：预览栏在右侧，交叉轴（高度）由 flex stretch 撑满 */
+.preview--right {
+  border-left: 1px solid var(--ctp-surface0);
+}
+/* 上下布局：预览栏在终端上方，交叉轴（宽度）由 flex stretch 撑满 */
+.preview--top {
+  border-bottom: 1px solid var(--ctp-surface0);
 }
 
 .preview-header {

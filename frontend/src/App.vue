@@ -18,24 +18,47 @@ const savedTree = Number(localStorage.getItem(TREE_KEY))
 const treeWidth = ref<number>(Number.isFinite(savedTree) && savedTree > 0
   ? Math.min(TREE_MAX, Math.max(TREE_MIN, savedTree)) : 280)
 
-function onResize(deltaX: number) {
-  treeWidth.value = Math.min(TREE_MAX, Math.max(TREE_MIN, treeWidth.value + deltaX))
+function onResize(delta: number) {
+  treeWidth.value = Math.min(TREE_MAX, Math.max(TREE_MIN, treeWidth.value + delta))
   localStorage.setItem(TREE_KEY, String(treeWidth.value))
 }
 
-// ── 右侧预览栏宽度 ─────────────────────────────────────────
-const PREVIEW_MIN = 200
-const PREVIEW_MAX = 700
-const PREVIEW_KEY = 'previewWidth'
+// ── 预览栏布局方向（左右 / 上下）─────────────────────────
+type PreviewLayout = 'horizontal' | 'vertical'
+const LAYOUT_KEY = 'previewLayout'
+const savedLayout = localStorage.getItem(LAYOUT_KEY)
+const previewLayout = ref<PreviewLayout>(savedLayout === 'vertical' ? 'vertical' : 'horizontal')
 
-const savedPreview = Number(localStorage.getItem(PREVIEW_KEY))
-const previewWidth = ref<number>(Number.isFinite(savedPreview) && savedPreview > 0
-  ? Math.min(PREVIEW_MAX, Math.max(PREVIEW_MIN, savedPreview)) : 320)
+function setPreviewLayout(layout: PreviewLayout) {
+  previewLayout.value = layout
+  localStorage.setItem(LAYOUT_KEY, layout)
+}
 
-function onPreviewResize(deltaX: number) {
-  // 分隔线在预览栏左侧，向左拖（deltaX 负）→ 预览变宽
-  previewWidth.value = Math.min(PREVIEW_MAX, Math.max(PREVIEW_MIN, previewWidth.value - deltaX))
-  localStorage.setItem(PREVIEW_KEY, String(previewWidth.value))
+// ── 预览栏宽度（左右布局）/ 高度（上下布局）─────────────
+// 仅保留下限防止塌缩，上限不限制（可拖到任意大）。
+const PREVIEW_MIN_W = 200
+const PREVIEW_MIN_H = 120
+const PREVIEW_W_KEY = 'previewWidth'
+const PREVIEW_H_KEY = 'previewHeight'
+
+const savedPreviewW = Number(localStorage.getItem(PREVIEW_W_KEY))
+const previewWidth = ref<number>(Number.isFinite(savedPreviewW) && savedPreviewW > 0
+  ? Math.max(PREVIEW_MIN_W, savedPreviewW) : 320)
+
+const savedPreviewH = Number(localStorage.getItem(PREVIEW_H_KEY))
+const previewHeight = ref<number>(Number.isFinite(savedPreviewH) && savedPreviewH > 0
+  ? Math.max(PREVIEW_MIN_H, savedPreviewH) : 260)
+
+function onPreviewResize(delta: number) {
+  // 分隔线在预览栏左侧，向左拖（delta 负）→ 预览变宽
+  previewWidth.value = Math.max(PREVIEW_MIN_W, previewWidth.value - delta)
+  localStorage.setItem(PREVIEW_W_KEY, String(previewWidth.value))
+}
+
+function onPreviewHeightResize(delta: number) {
+  // 分隔线在预览栏下方，向下拖（delta 正）→ 预览变高
+  previewHeight.value = Math.max(PREVIEW_MIN_H, previewHeight.value + delta)
+  localStorage.setItem(PREVIEW_H_KEY, String(previewHeight.value))
 }
 
 // ── Tab 管理 ──────────────────────────────────────────────
@@ -111,12 +134,24 @@ function onTerminalCwd(path: string) {
       <TabBar
         :tabs="tabs"
         :activeId="activeTabId"
+        :previewLayout="previewLayout"
         @add="addTab"
         @add-here="addTabHere"
         @close="closeTab"
         @activate="activateTab"
         @rename="renameTab"
+        @set-layout="setPreviewLayout"
       />
+      <!-- 上下布局：预览栏在上方，终端在下面（左侧文件树保持满高）-->
+      <template v-if="selectedFile && previewLayout === 'vertical'">
+        <FilePreview
+          :file="selectedFile"
+          placement="top"
+          :style="{ height: previewHeight + 'px' }"
+          @close="selectedFile = null"
+        />
+        <Divider orientation="horizontal" @resize="onPreviewHeightResize" />
+      </template>
       <div class="terminal-panels">
         <div
           v-for="tab in tabs"
@@ -133,10 +168,12 @@ function onTerminalCwd(path: string) {
         </div>
       </div>
     </div>
-    <template v-if="selectedFile">
+    <!-- 左右布局：预览栏在最右侧 -->
+    <template v-if="selectedFile && previewLayout === 'horizontal'">
       <Divider @resize="onPreviewResize" />
       <FilePreview
         :file="selectedFile"
+        placement="right"
         :style="{ width: previewWidth + 'px' }"
         @close="selectedFile = null"
       />

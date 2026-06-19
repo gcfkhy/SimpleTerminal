@@ -1,14 +1,23 @@
 <script setup lang="ts">
-// 4px 可拖拽分隔线，向父组件发出每次移动的水平增量
-const emit = defineEmits<{ (e: 'resize', deltaX: number): void }>()
+// 4px 可拖拽分隔线，向父组件发出每次移动的增量。
+// orientation = 'vertical'   → 竖向分隔条，col-resize，发出 X 轴增量（左右布局用）
+// orientation = 'horizontal' → 横向分隔条，row-resize，发出 Y 轴增量（上下布局用）
+const props = withDefaults(defineProps<{ orientation?: 'vertical' | 'horizontal' }>(), {
+  orientation: 'vertical',
+})
+const emit = defineEmits<{ (e: 'resize', delta: number): void }>()
 
 let dragging = false
-let lastX = 0
+let last = 0
+
+function pos(e: MouseEvent) {
+  return props.orientation === 'vertical' ? e.clientX : e.clientY
+}
 
 function onMouseDown(e: MouseEvent) {
   dragging = true
-  lastX = e.clientX
-  document.body.style.cursor = 'col-resize'
+  last = pos(e)
+  document.body.style.cursor = props.orientation === 'vertical' ? 'col-resize' : 'row-resize'
   document.body.style.userSelect = 'none'
   window.addEventListener('mousemove', onMouseMove)
   window.addEventListener('mouseup', onMouseUp)
@@ -16,8 +25,9 @@ function onMouseDown(e: MouseEvent) {
 
 function onMouseMove(e: MouseEvent) {
   if (!dragging) return
-  const delta = e.clientX - lastX
-  lastX = e.clientX
+  const cur = pos(e)
+  const delta = cur - last
+  last = cur
   emit('resize', delta)
 }
 
@@ -31,17 +41,24 @@ function onMouseUp() {
 </script>
 
 <template>
-  <div class="divider" @mousedown="onMouseDown"></div>
+  <div class="divider" :class="orientation" @mousedown="onMouseDown"></div>
 </template>
 
 <style scoped>
 .divider {
   flex: 0 0 4px;
+  background: var(--ctp-surface0);
+  transition: background 0.15s ease;
+}
+.divider.vertical {
   width: 4px;
   height: 100%;
   cursor: col-resize;
-  background: var(--ctp-surface0);
-  transition: background 0.15s ease;
+}
+.divider.horizontal {
+  width: 100%;
+  height: 4px;
+  cursor: row-resize;
 }
 .divider:hover {
   background: var(--ctp-blue);
