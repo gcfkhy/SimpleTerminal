@@ -16,4 +16,6 @@ export function ReadFileText(arg1:string,arg2:number):Promise<string>;
 
 export function ResizePty(arg1:string,arg2:number,arg3:number):Promise<void>;
 
+export function SaveExportFile(arg1:string,arg2:string):Promise<string>;
+
 export function StartPty(arg1:string,arg2:number,arg3:number):Promise<void>;

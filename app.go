@@ -141,3 +141,18 @@ func (a *App) ReadFileBase64(path string) (string, error) {
 	}
 	return "data:" + mt + ";base64," + base64.StdEncoding.EncodeToString(data), nil
 }
+
+// SaveExportFile 弹出保存对话框并把 content 写入所选路径，返回路径（取消时空串）。
+func (a *App) SaveExportFile(defaultName, content string) (string, error) {
+	path, err := wruntime.SaveFileDialog(a.ctx, wruntime.SaveDialogOptions{
+		DefaultFilename: defaultName,
+		Title:           "导出",
+	})
+	if err != nil || path == "" {
+		return "", err
+	}
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		return "", err
+	}
+	return path, nil
+}

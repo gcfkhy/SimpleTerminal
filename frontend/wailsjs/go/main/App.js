@@ -30,6 +30,10 @@ export function ResizePty(arg1, arg2, arg3) {
   return window['go']['main']['App']['ResizePty'](arg1, arg2, arg3);
 }
 
+export function SaveExportFile(arg1, arg2) {
+  return window['go']['main']['App']['SaveExportFile'](arg1, arg2);
+}
+
 export function StartPty(arg1, arg2, arg3) {
   return window['go']['main']['App']['StartPty'](arg1, arg2, arg3);
 }

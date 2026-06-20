@@ -7,6 +7,8 @@ import '../assets/markdown/content.css'
 import { renderMarkdownToHtml } from '../utils/markdown/render'
 import { MARKDOWN_THEMES, DEFAULT_THEME_ID } from '../utils/markdown/themes'
 import { BrowserOpenURL } from '../../wailsjs/runtime'
+import { buildExportHtml } from '../utils/markdown/export-html'
+import { SaveExportFile } from '../../wailsjs/go/main/App'
 
 const props = defineProps<{ source: string; filePath: string }>()
 
@@ -71,6 +73,18 @@ function onClick(e: MouseEvent) {
   BrowserOpenURL(href)
 }
 
+async function exportHtml() {
+  if (!rootEl.value) return
+  const name = (props.filePath.split(/[\\/]/).pop() || 'export').replace(/\.md$/i, '') + '.html'
+  const content = buildExportHtml(rootEl.value, theme.value, name)
+  try {
+    const saved = await SaveExportFile(name, content)
+    if (saved) console.log('导出成功:', saved)
+  } catch (e) {
+    console.error('导出失败:', e)
+  }
+}
+
 defineExpose({ rootEl, bodyEl, theme })
 </script>
 
@@ -79,6 +93,7 @@ defineExpose({ rootEl, bodyEl, theme })
     <div class="md-body" ref="bodyEl" v-html="html" @click="onClick"></div>
 
     <div class="md-toolbar">
+      <button class="md-tool-btn" title="导出 HTML" @click="exportHtml">⬇</button>
       <button class="md-tool-btn" title="主题" @click="themeOpen = !themeOpen">🎨</button>
     </div>
     <div v-if="themeOpen" class="md-theme-panel">
