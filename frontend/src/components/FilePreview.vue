@@ -3,7 +3,7 @@ import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import type { main } from '../../wailsjs/go/models'
 import { ReadFileText, ReadFileBase64 } from '../../wailsjs/go/main/App'
 import hljs from 'highlight.js'
-import { marked } from 'marked'
+import MarkdownPreview from './MarkdownPreview.vue'
 import { BrowserOpenURL } from '../../wailsjs/runtime'
 
 const props = withDefaults(defineProps<{
@@ -117,7 +117,7 @@ onUnmounted(() => {
 })
 
 const highlighted = ref('')
-const markdownHtml = ref('')
+const markdownRaw = ref('')
 const plainText   = ref('')
 const videoSrc = computed(() =>
   `/localfile?path=${encodeURIComponent(props.file.path)}`)
@@ -136,15 +136,14 @@ watch(() => props.file, async (file) => {
   imgX.value = 0
   imgY.value = 0
   highlighted.value = ''
-  markdownHtml.value = ''
+  markdownRaw.value = ''
   plainText.value = ''
 
   try {
     if (kind.value === 'image') {
       imgSrc.value = await ReadFileBase64(file.path)
     } else if (kind.value === 'markdown') {
-      const raw = await ReadFileText(file.path, 500 * 1024)
-      markdownHtml.value = await marked(raw, { async: true })
+      markdownRaw.value = await ReadFileText(file.path, 500 * 1024)
     } else if (kind.value === 'code' || kind.value === 'text') {
       const raw = await ReadFileText(file.path, 200 * 1024)
       plainText.value = raw
@@ -195,7 +194,7 @@ watch(() => props.file, async (file) => {
       </div>
 
       <div v-else-if="kind === 'markdown'" class="md-wrap">
-        <div class="md-body" v-html="markdownHtml"></div>
+        <MarkdownPreview :source="markdownRaw" :file-path="file.path" />
       </div>
 
       <div v-else-if="kind === 'code'" class="code-wrap">
@@ -303,107 +302,7 @@ watch(() => props.file, async (file) => {
   max-height: 100%;
 }
 
-/* Markdown 渲染区 */
-.md-wrap {
-  padding: 16px 20px;
-  height: 100%;
-}
-.md-body {
-  font-family: 'MiSans', 'Segoe UI', sans-serif;
-  font-size: 14px;
-  line-height: 1.7;
-  color: var(--ctp-text);
-}
-/* 标题 */
-.md-body :deep(h1),
-.md-body :deep(h2),
-.md-body :deep(h3),
-.md-body :deep(h4),
-.md-body :deep(h5),
-.md-body :deep(h6) {
-  color: var(--ctp-lavender);
-  margin: 1.2em 0 0.4em;
-  font-weight: 600;
-  line-height: 1.3;
-}
-.md-body :deep(h1) { font-size: 1.6em; border-bottom: 1px solid var(--ctp-surface0); padding-bottom: 0.3em; }
-.md-body :deep(h2) { font-size: 1.3em; border-bottom: 1px solid var(--ctp-surface0); padding-bottom: 0.2em; }
-.md-body :deep(h3) { font-size: 1.1em; }
-/* 段落/列表 */
-.md-body :deep(p)  { margin: 0.6em 0; }
-.md-body :deep(ul),
-.md-body :deep(ol) { padding-left: 1.5em; margin: 0.5em 0; }
-.md-body :deep(li) { margin: 0.2em 0; }
-/* 链接 */
-.md-body :deep(a)  { color: var(--ctp-blue); text-decoration: none; }
-.md-body :deep(a:hover) { text-decoration: underline; }
-/* 行内代码 */
-.md-body :deep(code) {
-  font-family: 'SF Mono', Consolas, 'MiSans', monospace;
-  font-size: 0.88em;
-  font-weight: 500;
-  background: var(--ctp-surface0);
-  color: #f38ba8;
-  padding: 0.1em 0.4em;
-  border-radius: 4px;
-}
-/* 代码块 */
-.md-body :deep(pre) {
-  background: var(--ctp-mantle);
-  border: 1px solid var(--ctp-surface0);
-  border-radius: 6px;
-  padding: 12px;
-  overflow-x: auto;
-  margin: 0.8em 0;
-}
-.md-body :deep(pre code) {
-  background: transparent;
-  padding: 0;
-  font-size: 13px;
-  font-family: 'SF Mono', Consolas, 'MiSans', monospace;
-  font-weight: 500;
-  color: var(--ctp-text);
-}
-/* 引用 */
-.md-body :deep(blockquote) {
-  border-left: 3px solid var(--ctp-overlay0);
-  margin: 0.8em 0;
-  padding: 0.3em 1em;
-  color: var(--ctp-subtext0);
-  background: var(--ctp-mantle);
-  border-radius: 0 4px 4px 0;
-}
-/* 分隔线 */
-.md-body :deep(hr) {
-  border: none;
-  border-top: 1px solid var(--ctp-surface0);
-  margin: 1em 0;
-}
-/* 表格 */
-.md-body :deep(table) {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 0.8em 0;
-  font-size: 13px;
-}
-.md-body :deep(th),
-.md-body :deep(td) {
-  border: 1px solid var(--ctp-surface0);
-  padding: 6px 10px;
-  text-align: left;
-}
-.md-body :deep(th) {
-  background: var(--ctp-surface0);
-  color: var(--ctp-lavender);
-}
-.md-body :deep(tr:nth-child(even)) {
-  background: var(--ctp-mantle);
-}
-/* 图片 */
-.md-body :deep(img) {
-  max-width: 100%;
-  border-radius: 4px;
-}
+.md-wrap { height: 100%; }
 
 /* 代码高亮区 */
 .code-wrap {
