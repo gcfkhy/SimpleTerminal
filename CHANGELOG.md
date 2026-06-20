@@ -7,6 +7,30 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [v1.3.0] · 2026-06-20
+
+### ✨ 新增 (Added)
+
+- **Markdown 预览全面重做** — 渲染引擎从 `marked` 换成 `markdown-it`，对齐 vscode-office 的阅读体验：
+  - **代码语法高亮**（修复此前 md 内代码块不高亮）、表格、任务列表、自动目录 (TOC)、标题锚点跳转；
+  - **Mermaid 流程图**与 **KaTeX 数学公式**；
+  - **18 套亮 / 暗主题**一键切换（Catppuccin、GitHub、Dracula、Nord、Tokyo Night、Solarized、Gruvbox…），全局记忆，且仅作用于预览容器，不影响终端与文件树；
+  - **导出菜单**（预览右下角）：**PDF（单页不分页、文字可选可复制）/ HTML（自包含单文件）/ 长图 PNG**，外观还原当前主题；
+  - **缩放**（➖ / ➕ 按钮与 Ctrl+滚轮，居中显示比例、点击还原 100%，记忆）与**刷新**（重读当前文件重渲）。
+
+---
+
+### ✨ Added
+
+- **Markdown preview fully reworked** — The rendering engine moves from `marked` to `markdown-it`, matching the vscode-office reading experience:
+  - **Code syntax highlighting** (fixing code blocks that previously rendered without highlighting), tables, task lists, an auto table of contents (TOC), and heading anchor navigation;
+  - **Mermaid diagrams** and **KaTeX math formulas**;
+  - **18 light / dark themes** with one-click switching (Catppuccin, GitHub, Dracula, Nord, Tokyo Night, Solarized, Gruvbox…), remembered globally and scoped to the preview only, leaving the terminal and file tree untouched;
+  - **Export menu** (bottom-right of the preview): **PDF (single continuous page, selectable & copyable text) / HTML (self-contained single file) / long-image PNG**, reproducing the current theme;
+  - **Zoom** (➖ / ➕ buttons and Ctrl+wheel, with a centered percentage indicator, click to reset to 100%, remembered) and **Refresh** (re-read and re-render the current file).
+
+---
+
 ## [v1.2.2] · 2026-06-19
 
 ### 🐛 修复 (Fixed)
