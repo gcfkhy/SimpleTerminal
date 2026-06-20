@@ -4,6 +4,8 @@ import {main} from '../models';
 
 export function ClosePty(arg1:string):Promise<void>;
 
+export function ExportPdf(arg1:string,arg2:string,arg3:number,arg4:number,arg5:number):Promise<string>;
+
 export function HomeDir():Promise<string>;
 
 export function OpenFolderDialog():Promise<string>;

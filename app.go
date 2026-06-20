@@ -156,3 +156,20 @@ func (a *App) SaveExportFile(defaultName, content string) (string, error) {
 	}
 	return path, nil
 }
+
+// ExportPdf 把传入的自包含 HTML 用离屏 WebView2 导出为单页 PDF。
+// pageWidthIn/pageHeightIn 单位英寸（前端按 PDF 宽度测高算好）；scale<1 表示触发了超长缩放。
+// 返回保存路径（取消时空串）。
+func (a *App) ExportPdf(defaultName, html string, pageWidthIn, pageHeightIn, scale float64) (string, error) {
+	path, err := wruntime.SaveFileDialog(a.ctx, wruntime.SaveDialogOptions{
+		DefaultFilename: defaultName,
+		Title:           "导出 PDF",
+	})
+	if err != nil || path == "" {
+		return "", err
+	}
+	if err := printHTMLToPDF(html, path, pageWidthIn, pageHeightIn, scale); err != nil {
+		return "", err
+	}
+	return path, nil
+}

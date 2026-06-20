@@ -8,7 +8,7 @@ import { renderMarkdownToHtml } from '../utils/markdown/render'
 import { MARKDOWN_THEMES, DEFAULT_THEME_ID } from '../utils/markdown/themes'
 import { BrowserOpenURL } from '../../wailsjs/runtime'
 import { buildExportHtml } from '../utils/markdown/export-html'
-import { SaveExportFile } from '../../wailsjs/go/main/App'
+import { SaveExportFile, ExportPdf } from '../../wailsjs/go/main/App'
 
 const props = defineProps<{ source: string; filePath: string }>()
 
@@ -79,9 +79,54 @@ async function exportHtml() {
   const content = buildExportHtml(rootEl.value, theme.value, name)
   try {
     const saved = await SaveExportFile(name, content)
-    if (saved) console.log('导出成功:', saved)
+    if (saved) showToast('HTML 已导出')
   } catch (e) {
+    showToast('HTML 导出失败')
     console.error('导出失败:', e)
+  }
+}
+
+const toast = ref('')
+let toastTimer: ReturnType<typeof setTimeout> | undefined
+function showToast(msg: string) {
+  toast.value = msg
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => (toast.value = ''), 2600)
+}
+
+// 在与 PDF 同宽(794px=A4@96dpi)的离屏容器里测内容高度，保证测得高度≈打印布局高度
+function measurePdfHeightPx(): number {
+  const bodyHtml = rootEl.value?.querySelector('.md-body')?.innerHTML ?? ''
+  const probe = document.createElement('div')
+  probe.className = 'md-preview-root'
+  probe.setAttribute('data-theme', theme.value)
+  probe.style.cssText = 'position:absolute;left:-99999px;top:0;width:794px;height:auto;overflow:visible;'
+  probe.innerHTML = `<div class="md-body">${bodyHtml}</div>`
+  document.body.appendChild(probe)
+  const h = probe.scrollHeight
+  document.body.removeChild(probe)
+  return h
+}
+
+async function exportPdf() {
+  if (!rootEl.value) return
+  const PAGE_W_IN = 794 / 96 // ≈8.27（A4 宽）
+  const MAX_H = 195 // 英寸，留余量避开 200in 硬上限
+  let heightIn = measurePdfHeightPx() / 96
+  let scale = 1
+  if (heightIn > MAX_H) {
+    scale = Math.max(0.1, MAX_H / heightIn)
+    heightIn = heightIn * scale
+    showToast(`内容过长，已自动缩放至 ${Math.round(scale * 100)}%`)
+  }
+  const name = (props.filePath.split(/[\\/]/).pop() || 'export').replace(/\.md$/i, '') + '.pdf'
+  const content = buildExportHtml(rootEl.value, theme.value, name)
+  try {
+    const saved = await ExportPdf(name, content, PAGE_W_IN, heightIn, scale)
+    if (saved) showToast('PDF 已导出')
+  } catch (e) {
+    showToast('PDF 导出失败')
+    console.error('PDF 导出失败:', e)
   }
 }
 
@@ -94,8 +139,11 @@ defineExpose({ rootEl, bodyEl, theme })
 
     <div class="md-toolbar">
       <button class="md-tool-btn" title="导出 HTML" @click="exportHtml">⬇</button>
+      <button class="md-tool-btn" title="导出 PDF" @click="exportPdf">📄</button>
       <button class="md-tool-btn" title="主题" @click="themeOpen = !themeOpen">🎨</button>
     </div>
+
+    <div v-if="toast" class="md-toast">{{ toast }}</div>
     <div v-if="themeOpen" class="md-theme-panel">
       <div class="md-theme-group">暗色</div>
       <div v-for="t in darkThemes" :key="t.id"
@@ -135,4 +183,10 @@ defineExpose({ rootEl, bodyEl, theme })
 .md-theme-item:hover { background: var(--md-pre-bg); }
 .md-theme-item.active { background: var(--md-pre-bg); font-weight: 600; }
 .md-theme-item.active::after { content: ' ✓'; color: var(--md-link); }
+.md-toast {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  padding: 10px 20px; border-radius: 10px; font-size: 14px;
+  background: var(--md-ui-bg); color: var(--md-fg); border: 1px solid var(--md-ui-border);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35); z-index: 20;
+}
 </style>
