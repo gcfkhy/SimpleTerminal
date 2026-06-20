@@ -173,3 +173,23 @@ func (a *App) ExportPdf(defaultName, html string, pageWidthIn, maxHeightIn float
 	}
 	return path, nil
 }
+
+// SavePngBase64 弹出保存对话框，把 base64 PNG 数据解码后写盘（长图由前端 html2canvas 生成）。
+// 返回保存路径（取消时空串）。
+func (a *App) SavePngBase64(defaultName, b64 string) (string, error) {
+	path, err := wruntime.SaveFileDialog(a.ctx, wruntime.SaveDialogOptions{
+		DefaultFilename: defaultName,
+		Title:           "导出长图",
+	})
+	if err != nil || path == "" {
+		return "", err
+	}
+	data, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		return "", err
+	}
+	return path, nil
+}

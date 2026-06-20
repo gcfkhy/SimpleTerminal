@@ -163,6 +163,15 @@ watch(() => props.file, async (file) => {
   }
   loading.value = false
 }, { immediate: true })
+
+// 刷新：强制重读当前 markdown 文件并重渲（自动刷新失效时的兜底）。
+async function reloadMarkdown() {
+  try {
+    markdownRaw.value = await ReadFileText(props.file.path, 500 * 1024)
+  } catch (e) {
+    error.value = String(e)
+  }
+}
 </script>
 
 <template>
@@ -194,7 +203,7 @@ watch(() => props.file, async (file) => {
       </div>
 
       <div v-else-if="kind === 'markdown'" class="md-wrap">
-        <MarkdownPreview :source="markdownRaw" :file-path="file.path" />
+        <MarkdownPreview :source="markdownRaw" :file-path="file.path" @refresh="reloadMarkdown" />
       </div>
 
       <div v-else-if="kind === 'code'" class="code-wrap">

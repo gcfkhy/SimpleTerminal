@@ -2,7 +2,7 @@
 
 package main
 
-// 离屏 WebView2 → 单页可选文字 PDF（走 Chrome DevTools 协议）。
+// 离屏 WebView2 → 单页可选文字 PDF / 长图 PNG（走 Chrome DevTools 协议）。
 //
 // 为什么用 CDP 而不是 ICoreWebView2_7.PrintToPdf：
 //  1. go-webview2 的 pkg/webview2 包 init 在新版 Go 上 panic，不能 import。
@@ -12,13 +12,11 @@ package main
 // CallDevToolsProtocolMethod 槽位正确。本文件照抄 edge 的基类 vtable 布局到该方法为止，
 // 按字段名访问（Go 自动算偏移）。
 //
-// 四步 CDP（导航完成后）：
-//  1. Emulation.setEmulatedMedia media=print —— 让离屏页以「打印媒体」排版，
-//     使后续量到的高度与 printToPDF 的实际排版完全一致（否则 screen 媒体略矮、最后一行溢出第二页）。
-//  2. Emulation.setDeviceMetricsOverride width=794 —— 固定排版宽度 = paperWidth。
-//  3. Page.getLayoutMetrics —— 量精确内容高度。
-//  4. Page.printToPDF —— 按该高度出单页：紧凑、printBackground 保留主题底色、矢量文字可选，
-//     base64 返回后写盘。
+// PDF（四步）：setEmulatedMedia(print) → setDeviceMetricsOverride(794) →
+//   getLayoutMetrics(精确高度) → printToPDF（单页紧凑、printBackground、矢量文字可选）。
+//   打印媒体排版让量高与打印一致，避免最后一行溢出第二页。
+// PNG 长图（三步，屏幕媒体）：setDeviceMetricsOverride(794) → getLayoutMetrics →
+//   captureScreenshot(clip 全文、captureBeyondViewport)。
 
 import (
 	"encoding/base64"
@@ -104,9 +102,9 @@ type cdpHandlerVtbl struct {
 }
 type cdpHandler struct{ vtbl *cdpHandlerVtbl }
 
-// 导出全程串行（pdfExportMu），故用包级变量在回调间传递。
+// 离屏导出全程串行（exportMu），故用包级变量在回调间传递完成态。
 var (
-	pdfExportMu    sync.Mutex
+	exportMu       sync.Mutex
 	cdpDone        func(errorCode uintptr, jsonPtr *uint16)
 	cdpHandlerOnce sync.Once
 	cdpHandlerInst cdpHandlerVtbl
@@ -157,6 +155,9 @@ var (
 
 const _WS_POPUP = 0x80000000
 
+// 排版/视口固定宽度 = paperWidth(794px = A4@96dpi)。
+const cdpMetricsParams = `{"width":794,"height":1123,"deviceScaleFactor":1,"mobile":false,"screenWidth":794,"screenHeight":1123}`
+
 type wndClassExW struct {
 	cbSize        uint32
 	style         uint32
@@ -183,6 +184,22 @@ type msgW struct {
 
 var offscreenClassSeq uint64
 
+// 离屏隐藏窗口的 WndProc：用单例，避免每次导出都 NewCallback(永不释放→撞回调上限)。
+var (
+	offscreenWndProcOnce sync.Once
+	offscreenWndProc     comProc
+)
+
+func getOffscreenWndProc() comProc {
+	offscreenWndProcOnce.Do(func() {
+		offscreenWndProc = newComProc(func(hwnd windows.Handle, msg uint32, wParam, lParam uintptr) uintptr {
+			ret, _, _ := procDefWindowProcW.Call(uintptr(hwnd), uintptr(msg), wParam, lParam)
+			return ret
+		})
+	})
+	return offscreenWndProc
+}
+
 func getModuleHandle() windows.Handle {
 	h, _, _ := procGetModuleHandleW.Call(0)
 	return windows.Handle(h)
@@ -200,50 +217,54 @@ func pdfLog(format string, a ...interface{}) {
 	fmt.Fprintf(f, format+"\n", a...)
 }
 
-// printHTMLToPDF 用离屏 WebView2 把自包含 html 导出为单页 PDF 到 outPath。
-// pageWIn 为页宽(英寸)；maxHIn 为单页最大高度(英寸，避开 PDF 200in 硬上限)，
-// 内容高度由离屏页(打印媒体)精确测得，超过 maxHIn 时自动按比例缩放。
-func printHTMLToPDF(html, outPath string, pageWIn, maxHIn float64) error {
-	pdfExportMu.Lock()
-	defer pdfExportMu.Unlock()
+// cdpCall 发起一次 CallDevToolsProtocolMethod，完成时把结果 JSON 交给 cb。
+type cdpCall func(method, params string, cb func(resultJSON string, errorCode uintptr))
+
+// runOffscreenLocked 在专属 STA 线程上跑 fn（WebView2 要求 STA 套间 + 自己 CoInitialize）。
+func runOffscreenLocked(fn func() error) error {
+	exportMu.Lock()
+	defer exportMu.Unlock()
 
 	resultCh := make(chan error, 1)
 	go func() {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()
-		// WebView2 要求创建/调用它的线程是 STA 套间。离屏线程是新建的，必须自己 CoInitializeEx。
 		if err := windows.CoInitializeEx(0, windows.COINIT_APARTMENTTHREADED); err != nil {
 			pdfLog("CoInitializeEx ret=%v (S_FALSE/已初始化可忽略)", err)
 		}
 		defer windows.CoUninitialize()
-		resultCh <- runOffscreenPrint(html, outPath, pageWIn, maxHIn)
+		resultCh <- fn()
 	}()
 	return <-resultCh
 }
 
-func runOffscreenPrint(html, outPath string, pageWIn, maxHIn float64) (retErr error) {
-	_ = os.WriteFile(pdfLogPath, []byte("=== pdf export start ===\n"), 0644)
-	pdfLog("params w=%.3f maxH=%.3f out=%s htmlLen=%d", pageWIn, maxHIn, outPath, len(html))
+// withOffscreenWebView 建隐藏窗口 + 离屏 Chromium，加载 html，导航完成后回调
+// build(wv, call, finish) 让调用方发起 CDP 链；finish(err) 结束并退出消息泵。
+func withOffscreenWebView(html, tag string, build func(wv *cdpWebView2, call cdpCall, finish func(error))) (retErr error) {
+	_ = os.WriteFile(pdfLogPath, []byte("=== "+tag+" export start ===\n"), 0644)
+	pdfLog("htmlLen=%d", len(html))
 	defer func() {
 		if r := recover(); r != nil {
-			retErr = fmt.Errorf("离屏 PDF 导出 panic: %v", r)
+			retErr = fmt.Errorf("离屏导出 panic: %v", r)
 		}
 		pdfLog("RETURN err=%v", retErr)
 	}()
 
-	// 1) 注册唯一隐藏窗口类。
+	// 清理上次导出残留的临时 DataPath，避免累积。
+	if olds, _ := filepath.Glob(filepath.Join(os.TempDir(), "SimpleTerminal-pdf-*")); olds != nil {
+		for _, d := range olds {
+			_ = os.RemoveAll(d)
+		}
+	}
+
 	hInstance := getModuleHandle()
 	className := "STOffscreenPdf_" + strconv.FormatUint(atomicAddSeq(), 10)
 	classNamePtr, err := windows.UTF16PtrFromString(className)
 	if err != nil {
 		return err
 	}
-	wndProc := newComProc(func(hwnd windows.Handle, msg uint32, wParam, lParam uintptr) uintptr {
-		ret, _, _ := procDefWindowProcW.Call(uintptr(hwnd), uintptr(msg), wParam, lParam)
-		return ret
-	})
 	wc := wndClassExW{
-		lpfnWndProc:   uintptr(wndProc),
+		lpfnWndProc:   uintptr(getOffscreenWndProc()),
 		hInstance:     hInstance,
 		lpszClassName: classNamePtr,
 	}
@@ -254,8 +275,7 @@ func runOffscreenPrint(html, outPath string, pageWIn, maxHIn float64) (retErr er
 	}
 	defer procUnregisterClassW.Call(uintptr(unsafe.Pointer(classNamePtr)), uintptr(hInstance))
 
-	// 2) 创建隐藏窗口（WS_POPUP，不 ShowWindow）。
-	titlePtr, _ := windows.UTF16PtrFromString("offscreen-pdf")
+	titlePtr, _ := windows.UTF16PtrFromString("offscreen-export")
 	hwnd, _, e2 := procCreateWindowExW.Call(
 		0,
 		uintptr(unsafe.Pointer(classNamePtr)),
@@ -272,16 +292,15 @@ func runOffscreenPrint(html, outPath string, pageWIn, maxHIn float64) (retErr er
 	defer procDestroyWindow.Call(hwnd)
 	pdfLog("window created hwnd=0x%x", hwnd)
 
-	// 3) 离屏 Chromium，独立 DataPath 避免与 Wails 自身 WebView2 用户目录冲突。
 	chromium := edge.NewChromium()
 	chromium.DataPath = filepath.Join(os.TempDir(), "SimpleTerminal-pdf-"+strconv.FormatInt(time.Now().UnixNano(), 10))
 	chromium.SetErrorCallback(func(err error) {
-		fmt.Fprintf(os.Stderr, "[offscreen-pdf][webview2] %v\n", err)
+		fmt.Fprintf(os.Stderr, "[offscreen-export][webview2] %v\n", err)
 	})
 
-	var printErr error
+	var resultErr error
 	finish := func(e error) {
-		printErr = e
+		resultErr = e
 		procPostQuitMessage.Call(0)
 	}
 
@@ -291,9 +310,7 @@ func runOffscreenPrint(html, outPath string, pageWIn, maxHIn float64) (retErr er
 		keepMethod  *uint16
 		keepParams  *uint16
 	)
-
-	// callCDP 发起一次 CallDevToolsProtocolMethod，完成时把结果 JSON 交给 cb。串行调用，故全局态安全。
-	callCDP := func(wv *cdpWebView2, method, params string, cb func(resultJSON string, errorCode uintptr)) {
+	callCDP := func(wv *cdpWebView2, method, params string, cb func(string, uintptr)) {
 		cdpDone = func(errorCode uintptr, jsonPtr *uint16) {
 			s := ""
 			if jsonPtr != nil {
@@ -316,114 +333,20 @@ func runOffscreenPrint(html, outPath string, pageWIn, maxHIn float64) (retErr er
 		}
 	}
 
-	// 第四步：按精确高度打印。
-	doPrint := func(wv *cdpWebView2, paperH, scale float64) {
-		params := fmt.Sprintf(
-			`{"landscape":false,"printBackground":true,"paperWidth":%.4f,"paperHeight":%.4f,`+
-				`"marginTop":0,"marginBottom":0,"marginLeft":0,"marginRight":0,"scale":%.4f,"preferCSSPageSize":false}`,
-			pageWIn, paperH, scale,
-		)
-		callCDP(wv, "Page.printToPDF", params, func(resJSON string, ec uintptr) {
-			if ec != 0 {
-				finish(fmt.Errorf("printToPDF errorCode=0x%x", ec))
-				return
-			}
-			var r struct {
-				Data string `json:"data"`
-			}
-			if err := json.Unmarshal([]byte(resJSON), &r); err != nil {
-				finish(fmt.Errorf("解析 printToPDF 结果失败: %w (resp=%.160s)", err, resJSON))
-				return
-			}
-			if r.Data == "" {
-				finish(fmt.Errorf("printToPDF 结果无 data (resp=%.200s)", resJSON))
-				return
-			}
-			pdfBytes, err := base64.StdEncoding.DecodeString(r.Data)
-			if err != nil {
-				finish(fmt.Errorf("base64 解码失败: %w", err))
-				return
-			}
-			if err := os.WriteFile(outPath, pdfBytes, 0644); err != nil {
-				finish(fmt.Errorf("写 PDF 文件失败: %w", err))
-				return
-			}
-			pdfLog("PDF written, %d bytes", len(pdfBytes))
-			finish(nil)
-		})
-	}
-
-	// 第三步：量精确内容高度（此时已是打印媒体 + 固定宽度），算出 paperHeight/scale 后打印。
-	doMeasure := func(wv *cdpWebView2) {
-		callCDP(wv, "Page.getLayoutMetrics", "{}", func(resultJSON string, ec uintptr) {
-			if ec != 0 {
-				finish(fmt.Errorf("getLayoutMetrics errorCode=0x%x", ec))
-				return
-			}
-			var m struct {
-				CSSContentSize struct {
-					Height float64 `json:"height"`
-				} `json:"cssContentSize"`
-				ContentSize struct {
-					Height float64 `json:"height"`
-				} `json:"contentSize"`
-			}
-			_ = json.Unmarshal([]byte(resultJSON), &m)
-			heightPx := m.CSSContentSize.Height
-			if heightPx == 0 {
-				heightPx = m.ContentSize.Height
-			}
-			if heightPx <= 0 {
-				finish(fmt.Errorf("getLayoutMetrics 高度为 0 (resp=%.160s)", resultJSON))
-				return
-			}
-			// 打印媒体下量得高度已与打印一致，仅留极小缓冲(8px)吸收取整。
-			contentIn := (math.Ceil(heightPx) + 8) / 96
-			scale := 1.0
-			paperH := contentIn
-			if contentIn > maxHIn {
-				scale = maxHIn / contentIn
-				paperH = maxHIn
-			}
-			pdfLog("layout heightPx=%.1f -> paperH=%.3fin scale=%.4f", heightPx, paperH, scale)
-			doPrint(wv, paperH, scale)
-		})
-	}
-
 	chromium.NavigationCompletedCallback = func(sender *edge.ICoreWebView2, _ *edge.ICoreWebView2NavigationCompletedEventArgs) {
-		pdfLog("NavigationCompleted; CDP setEmulatedMedia=print")
+		pdfLog("NavigationCompleted")
 		wv := (*cdpWebView2)(unsafe.Pointer(sender))
-
-		// 第一步：切到打印媒体排版。
-		callCDP(wv, "Emulation.setEmulatedMedia", `{"media":"print"}`, func(_ string, ec1 uintptr) {
-			if ec1 != 0 {
-				finish(fmt.Errorf("setEmulatedMedia errorCode=0x%x", ec1))
-				return
-			}
-			pdfLog("media=print ok; setDeviceMetricsOverride")
-			// 第二步：固定排版宽度 = paperWidth (794px)。
-			callCDP(wv, "Emulation.setDeviceMetricsOverride",
-				`{"width":794,"height":1123,"deviceScaleFactor":1,"mobile":false,"screenWidth":794,"screenHeight":1123}`,
-				func(_ string, ec2 uintptr) {
-					if ec2 != 0 {
-						finish(fmt.Errorf("setDeviceMetricsOverride errorCode=0x%x", ec2))
-						return
-					}
-					pdfLog("metrics override ok; getLayoutMetrics")
-					doMeasure(wv)
-				})
-		})
+		build(wv, func(method, params string, cb func(string, uintptr)) {
+			callCDP(wv, method, params, cb)
+		}, finish)
 	}
 
-	// 4) Embed 同步泵消息直到 webview 就绪。
 	pdfLog("before Embed")
 	chromium.Embed(hwnd)
 	pdfLog("after Embed; NavigateToString")
-	// 5) 加载自包含 HTML。
 	chromium.NavigateToString(html)
-	pdfLog("NavigateToString called; entering message loop")
+	pdfLog("entering message loop")
 
-	// 6) 消息泵：导航→设打印媒体→固定宽→量高→打印→写盘→PostQuitMessage 退出。
 	var msg msgW
 	for {
 		r, _, _ := procGetMessageW.Call(uintptr(unsafe.Pointer(&msg)), 0, 0, 0)
@@ -438,7 +361,103 @@ func runOffscreenPrint(html, outPath string, pageWIn, maxHIn float64) (retErr er
 	runtime.KeepAlive(keepHandler)
 	runtime.KeepAlive(keepMethod)
 	runtime.KeepAlive(keepParams)
-	return printErr
+	return resultErr
+}
+
+// getLayoutHeightPx 解析 Page.getLayoutMetrics 结果里的内容高度(px)。
+func getLayoutHeightPx(resultJSON string) float64 {
+	var m struct {
+		CSSContentSize struct {
+			Height float64 `json:"height"`
+		} `json:"cssContentSize"`
+		ContentSize struct {
+			Height float64 `json:"height"`
+		} `json:"contentSize"`
+	}
+	_ = json.Unmarshal([]byte(resultJSON), &m)
+	h := m.CSSContentSize.Height
+	if h == 0 {
+		h = m.ContentSize.Height
+	}
+	return h
+}
+
+// decodeWriteCDPData 从 CDP 结果 JSON 取 base64 data 解码写盘。
+func decodeWriteCDPData(resultJSON, outPath string) error {
+	var r struct {
+		Data string `json:"data"`
+	}
+	if err := json.Unmarshal([]byte(resultJSON), &r); err != nil {
+		return fmt.Errorf("解析结果失败: %w (resp=%.160s)", err, resultJSON)
+	}
+	if r.Data == "" {
+		return fmt.Errorf("结果无 data (resp=%.200s)", resultJSON)
+	}
+	b, err := base64.StdEncoding.DecodeString(r.Data)
+	if err != nil {
+		return fmt.Errorf("base64 解码失败: %w", err)
+	}
+	if err := os.WriteFile(outPath, b, 0644); err != nil {
+		return fmt.Errorf("写文件失败: %w", err)
+	}
+	pdfLog("written %d bytes -> %s", len(b), outPath)
+	return nil
+}
+
+// printHTMLToPDF 把自包含 html 导出为单页可选文字 PDF。
+// pageWIn 页宽(英寸)；maxHIn 单页最大高度(英寸，避开 PDF 200in 硬上限)。
+func printHTMLToPDF(html, outPath string, pageWIn, maxHIn float64) error {
+	return runOffscreenLocked(func() error {
+		return withOffscreenWebView(html, "pdf", func(wv *cdpWebView2, call cdpCall, finish func(error)) {
+			// 1) 打印媒体排版（让量高与打印一致）
+			call("Emulation.setEmulatedMedia", `{"media":"print"}`, func(_ string, ec uintptr) {
+				if ec != 0 {
+					finish(fmt.Errorf("setEmulatedMedia errorCode=0x%x", ec))
+					return
+				}
+				// 2) 固定排版宽度
+				call("Emulation.setDeviceMetricsOverride", cdpMetricsParams, func(_ string, ec2 uintptr) {
+					if ec2 != 0 {
+						finish(fmt.Errorf("setDeviceMetricsOverride errorCode=0x%x", ec2))
+						return
+					}
+					// 3) 量精确高度
+					call("Page.getLayoutMetrics", "{}", func(js string, ec3 uintptr) {
+						if ec3 != 0 {
+							finish(fmt.Errorf("getLayoutMetrics errorCode=0x%x", ec3))
+							return
+						}
+						heightPx := getLayoutHeightPx(js)
+						if heightPx <= 0 {
+							finish(fmt.Errorf("getLayoutMetrics 高度为 0 (resp=%.160s)", js))
+							return
+						}
+						contentIn := (math.Ceil(heightPx) + 8) / 96 // +8px 吸收取整
+						scale := 1.0
+						paperH := contentIn
+						if contentIn > maxHIn {
+							scale = maxHIn / contentIn
+							paperH = maxHIn
+						}
+						pdfLog("pdf heightPx=%.1f -> paperH=%.3fin scale=%.4f", heightPx, paperH, scale)
+						// 4) 打印
+						params := fmt.Sprintf(
+							`{"landscape":false,"printBackground":true,"paperWidth":%.4f,"paperHeight":%.4f,`+
+								`"marginTop":0,"marginBottom":0,"marginLeft":0,"marginRight":0,"scale":%.4f,"preferCSSPageSize":false}`,
+							pageWIn, paperH, scale,
+						)
+						call("Page.printToPDF", params, func(rj string, ec4 uintptr) {
+							if ec4 != 0 {
+								finish(fmt.Errorf("printToPDF errorCode=0x%x", ec4))
+								return
+							}
+							finish(decodeWriteCDPData(rj, outPath))
+						})
+					})
+				})
+			})
+		})
+	})
 }
 
 func atomicAddSeq() uint64 {
