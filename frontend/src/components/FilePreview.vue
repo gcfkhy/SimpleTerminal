@@ -4,12 +4,23 @@ import type { main } from '../../wailsjs/go/models'
 import { ReadFileText, ReadFileBase64 } from '../../wailsjs/go/main/App'
 import hljs from 'highlight.js'
 import { marked } from 'marked'
+import { BrowserOpenURL } from '../../wailsjs/runtime'
 
 const props = withDefaults(defineProps<{
   file: main.FileEntry
   placement?: 'right' | 'top'
 }>(), { placement: 'right' })
 const emit = defineEmits<{ close: [] }>()
+
+// 预览内的超链接改用系统浏览器打开，避免 webview 直接导航、覆盖整个应用且无法返回。
+function onLinkClick(e: MouseEvent) {
+  const a = (e.target as HTMLElement).closest('a')
+  if (!a) return
+  const href = a.getAttribute('href')
+  if (!href || href.startsWith('#')) return // 页内锚点保留默认跳转
+  e.preventDefault()
+  BrowserOpenURL(href)
+}
 
 const imageExts = new Set(['png','jpg','jpeg','gif','webp','bmp','svg','ico'])
 const videoExts = new Set(['mp4','mkv','avi','mov','webm','flv'])
@@ -162,7 +173,7 @@ watch(() => props.file, async (file) => {
       <button class="preview-close" @click="emit('close')">×</button>
     </div>
 
-    <div class="preview-body">
+    <div class="preview-body" @click="onLinkClick">
       <div v-if="loading"  class="center muted">加载中…</div>
       <div v-else-if="error" class="center err">{{ error }}</div>
 

@@ -156,11 +156,10 @@ watch(pickedDir, (dir) => {
   }
 })
 
-// 终端目录变化同步左侧树：仅当左侧树为空（未选过目录）时生效。
+// 终端目录变化时，左侧文件树跟随切到该目录。
 // path 来自 PowerShell 提示符，已是解析好的真实绝对路径，直接 loadDir。
-// 命中后 loadDir 会填上 currentPath，gate 自动关闭，后续目录变化不再驱动树。
 function onTerminalCwd(path: string) {
-  if (currentPath.value !== '') return // 树已有内容，gate 关闭
+  if (path === currentPath.value) return // 已是当前根则跳过（兼防选目录→发cd→回灌的循环）
   void loadDir(path)
 }
 </script>
