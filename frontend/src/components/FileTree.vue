@@ -122,4 +122,3 @@ onMounted(() => {
   color: var(--ctp-text);
 }
 </style>
-</parameter>

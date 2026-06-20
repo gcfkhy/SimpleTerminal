@@ -134,4 +134,3 @@ function onIconError(e: Event) {
   text-overflow: ellipsis;
 }
 </style>
-</parameter>
