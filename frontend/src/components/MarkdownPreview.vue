@@ -62,7 +62,8 @@ function onClick(e: MouseEvent) {
   if (!href) return
   if (href.startsWith('#')) {
     e.preventDefault()
-    const target = rootEl.value?.querySelector(decodeURIComponent(href))
+    const id = decodeURIComponent(href.slice(1))
+    const target = id ? rootEl.value?.querySelector('#' + CSS.escape(id)) : null
     target?.scrollIntoView({ behavior: 'smooth' })
     return
   }
