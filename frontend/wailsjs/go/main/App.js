@@ -6,8 +6,8 @@ export function ClosePty(arg1) {
   return window['go']['main']['App']['ClosePty'](arg1);
 }
 
-export function ExportPdf(arg1, arg2, arg3, arg4, arg5) {
-  return window['go']['main']['App']['ExportPdf'](arg1, arg2, arg3, arg4, arg5);
+export function ExportPdf(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['ExportPdf'](arg1, arg2, arg3, arg4);
 }
 
 export function HomeDir() {

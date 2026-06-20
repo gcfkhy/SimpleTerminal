@@ -94,38 +94,18 @@ function showToast(msg: string) {
   toastTimer = setTimeout(() => (toast.value = ''), 2600)
 }
 
-// 在与 PDF 同宽(794px=A4@96dpi)的离屏容器里测内容高度，保证测得高度≈打印布局高度
-function measurePdfHeightPx(): number {
-  const bodyHtml = rootEl.value?.querySelector('.md-body')?.innerHTML ?? ''
-  const probe = document.createElement('div')
-  probe.className = 'md-preview-root'
-  probe.setAttribute('data-theme', theme.value)
-  probe.style.cssText = 'position:absolute;left:-99999px;top:0;width:794px;height:auto;overflow:visible;'
-  probe.innerHTML = `<div class="md-body">${bodyHtml}</div>`
-  document.body.appendChild(probe)
-  const h = probe.scrollHeight
-  document.body.removeChild(probe)
-  return h
-}
-
 async function exportPdf() {
   if (!rootEl.value) return
-  const PAGE_W_IN = 794 / 96 // ≈8.27（A4 宽）
-  const MAX_H = 195 // 英寸，留余量避开 200in 硬上限
-  let heightIn = measurePdfHeightPx() / 96
-  let scale = 1
-  if (heightIn > MAX_H) {
-    scale = Math.max(0.1, MAX_H / heightIn)
-    heightIn = heightIn * scale
-    showToast(`内容过长，已自动缩放至 ${Math.round(scale * 100)}%`)
-  }
+  const PAGE_W_IN = 794 / 96 // A4 宽 ≈8.27in（=794px@96dpi，与导出 HTML 同宽）
+  const MAX_H_IN = 195 // 单页最大高度，避开 PDF 200in 硬上限；实际内容高度由 Go 端离屏精确测得
   const name = (props.filePath.split(/[\\/]/).pop() || 'export').replace(/\.md$/i, '') + '.pdf'
   const content = buildExportHtml(rootEl.value, theme.value, name)
+  showToast('正在导出 PDF…')
   try {
-    const saved = await ExportPdf(name, content, PAGE_W_IN, heightIn, scale)
+    const saved = await ExportPdf(name, content, PAGE_W_IN, MAX_H_IN)
     if (saved) showToast('PDF 已导出')
   } catch (e) {
-    showToast('PDF 导出失败')
+    showToast('PDF 导出失败: ' + String(e))
     console.error('PDF 导出失败:', e)
   }
 }
@@ -135,7 +115,9 @@ defineExpose({ rootEl, bodyEl, theme })
 
 <template>
   <div class="md-preview-root" :data-theme="theme" ref="rootEl">
-    <div class="md-body" ref="bodyEl" v-html="html" @click="onClick"></div>
+    <div class="md-scroll">
+      <div class="md-body" ref="bodyEl" v-html="html" @click="onClick"></div>
+    </div>
 
     <div class="md-toolbar">
       <button class="md-tool-btn" title="导出 HTML" @click="exportHtml">⬇</button>
@@ -161,8 +143,12 @@ defineExpose({ rootEl, bodyEl, theme })
 .md-preview-root {
   position: relative;
   height: 100%;
-  overflow: auto;
+  overflow: hidden;
   background: var(--md-bg);
+}
+.md-scroll {
+  height: 100%;
+  overflow: auto;
 }
 .md-toolbar {
   position: absolute; right: 14px; bottom: 14px; display: flex; gap: 8px; z-index: 10;
@@ -186,6 +172,7 @@ defineExpose({ rootEl, bodyEl, theme })
 .md-toast {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
   padding: 10px 20px; border-radius: 10px; font-size: 14px;
+  max-width: 80%; text-align: center; word-break: break-word;
   background: var(--md-ui-bg); color: var(--md-fg); border: 1px solid var(--md-ui-border);
   box-shadow: 0 6px 24px rgba(0,0,0,0.35); z-index: 20;
 }
