@@ -1,0 +1,55 @@
+/* 移植自 vscode-office preview.css 内容样式，命名空间化到 .md-preview-root */
+.md-preview-root .md-body {
+  padding: 16px 24px;
+  font-family: 'MiSans','Segoe UI',sans-serif;
+  font-size: 14px; line-height: 1.7; color: var(--md-fg);
+}
+.md-preview-root .md-render-error { color: var(--md-code-fg); white-space: pre-wrap; }
+.md-preview-root .md-body h1,.md-preview-root .md-body h2,.md-preview-root .md-body h3,
+.md-preview-root .md-body h4,.md-preview-root .md-body h5,.md-preview-root .md-body h6 {
+  color: var(--md-heading); margin: 1.2em 0 0.4em; font-weight: 600; line-height: 1.3;
+}
+.md-preview-root .md-body h1 { font-size:1.6em; border-bottom:1px solid var(--md-heading-border); padding-bottom:0.3em; }
+.md-preview-root .md-body h2 { font-size:1.3em; border-bottom:1px solid var(--md-heading-border); padding-bottom:0.2em; }
+.md-preview-root .md-body h3 { font-size:1.1em; }
+.md-preview-root .md-body p { margin: 0.6em 0; }
+.md-preview-root .md-body ul,.md-preview-root .md-body ol { padding-left:1.5em; margin:0.5em 0; }
+.md-preview-root .md-body li { margin:0.2em 0; }
+.md-preview-root .md-body a { color: var(--md-link); text-decoration:none; }
+.md-preview-root .md-body a:hover { text-decoration:underline; }
+.md-preview-root .md-body code {
+  font-family:'SF Mono',Consolas,'MiSans',monospace; font-size:0.88em; font-weight:500;
+  background: var(--md-code-bg); color: var(--md-code-fg); padding:0.1em 0.4em; border-radius:4px;
+}
+.md-preview-root .md-body pre {
+  background: var(--md-pre-bg); border:1px solid var(--md-pre-border); border-radius:6px;
+  padding:12px; overflow-x:auto; margin:0.8em 0;
+}
+.md-preview-root .md-body pre code {
+  background:transparent; padding:0; font-size:13px; font-weight:500; color: var(--md-fg);
+  font-family:'SF Mono',Consolas,'MiSans',monospace;
+}
+.md-preview-root .md-body blockquote {
+  border-left:3px solid var(--md-quote-border); margin:0.8em 0; padding:0.3em 1em;
+  color: var(--md-quote-fg); background: var(--md-quote-bg); border-radius:0 4px 4px 0;
+}
+.md-preview-root .md-body hr { border:none; border-top:1px solid var(--md-border); margin:1em 0; }
+.md-preview-root .md-body table { border-collapse:collapse; width:100%; margin:0.8em 0; font-size:13px; }
+.md-preview-root .md-body th,.md-preview-root .md-body td { border:1px solid var(--md-border); padding:6px 10px; text-align:left; }
+.md-preview-root .md-body th { background: var(--md-table-head-bg); color: var(--md-heading); }
+.md-preview-root .md-body tr:nth-child(even) { background: var(--md-table-stripe); }
+.md-preview-root .md-body img { max-width:100%; border-radius:4px; }
+.md-preview-root .hljs { color: var(--md-fg); background: transparent; }
+.md-preview-root .hljs-comment,.md-preview-root .hljs-quote { color: var(--hl-comment); font-style: italic; }
+.md-preview-root .hljs-keyword,.md-preview-root .hljs-selector-tag,.md-preview-root .hljs-name,.md-preview-root .hljs-tag { color: var(--hl-keyword); }
+.md-preview-root .hljs-string,.md-preview-root .hljs-section,.md-preview-root .hljs-addition { color: var(--hl-string); }
+.md-preview-root .hljs-number,.md-preview-root .hljs-literal,.md-preview-root .hljs-bullet,.md-preview-root .hljs-link,.md-preview-root .hljs-deletion { color: var(--hl-number); }
+.md-preview-root .hljs-title,.md-preview-root .hljs-title.function_,.md-preview-root .hljs-function .hljs-title { color: var(--hl-function); }
+.md-preview-root .hljs-attr,.md-preview-root .hljs-variable,.md-preview-root .hljs-template-variable,.md-preview-root .hljs-params,.md-preview-root .hljs-property { color: var(--hl-attr); }
+.md-preview-root .hljs-built_in,.md-preview-root .hljs-type,.md-preview-root .hljs-title.class_,.md-preview-root .hljs-class .hljs-title { color: var(--hl-class); }
+.md-preview-root .hljs-meta { color: var(--hl-meta); }
+.md-preview-root .hljs-symbol { color: var(--hl-symbol); }
+.md-preview-root .hljs-regexp { color: var(--hl-regexp); }
+.md-preview-root .hljs-selector-id,.md-preview-root .hljs-selector-class,.md-preview-root .hljs-selector-attr,.md-preview-root .hljs-selector-pseudo { color: var(--hl-class); }
+.md-preview-root .hljs-doctag,.md-preview-root .hljs-strong { font-weight:bold; }
+.md-preview-root .hljs-emphasis { font-style:italic; }

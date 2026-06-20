@@ -1,0 +1,235 @@
+/* 默认兜底 = Catppuccin Mocha;每个主题一段 [data-theme] */
+.md-preview-root,
+.md-preview-root[data-theme="catppuccin-mocha"] {
+  --md-bg:#1e1e2e; --md-fg:#cdd6f4; --md-muted:#a6adc8;
+  --md-heading:#b4befe; --md-heading-border:#313244; --md-link:#89b4fa;
+  --md-border:#313244; --md-code-fg:#f38ba8; --md-code-bg:#313244;
+  --md-pre-bg:#181825; --md-pre-border:#313244;
+  --md-quote-fg:#a6adc8; --md-quote-bg:#181825; --md-quote-border:#6c7086;
+  --md-table-head-bg:#313244; --md-table-stripe:#181825;
+  --md-ui-bg:rgba(49,50,68,0.92); --md-ui-border:#45475a;
+  --hl-comment:#6c7086; --hl-keyword:#cba6f7; --hl-string:#a6e3a1; --hl-number:#fab387;
+  --hl-function:#89b4fa; --hl-attr:#f9e2af; --hl-class:#94e2d5; --hl-meta:#fab387;
+  --hl-regexp:#f5c2e7; --hl-symbol:#fab387;
+}
+
+.md-preview-root[data-theme="catppuccin-macchiato"] {
+  --md-bg:#24273a; --md-fg:#cad3f5; --md-muted:#a5adcb;
+  --md-heading:#b7bdf8; --md-heading-border:#363a4f; --md-link:#8aadf4;
+  --md-border:#363a4f; --md-code-fg:#ed8796; --md-code-bg:#363a4f;
+  --md-pre-bg:#1e2030; --md-pre-border:#363a4f;
+  --md-quote-fg:#a5adcb; --md-quote-bg:#1e2030; --md-quote-border:#6e738d;
+  --md-table-head-bg:#363a4f; --md-table-stripe:#1e2030;
+  --md-ui-bg:rgba(54,58,79,0.92); --md-ui-border:#494d64;
+  --hl-comment:#6e738d; --hl-keyword:#c6a0f6; --hl-string:#a6da95; --hl-number:#f5a97f;
+  --hl-function:#8aadf4; --hl-attr:#eed49f; --hl-class:#8bd5ca; --hl-meta:#f5a97f;
+  --hl-regexp:#f5bde6; --hl-symbol:#f5a97f;
+}
+
+.md-preview-root[data-theme="catppuccin-frappe"] {
+  --md-bg:#303446; --md-fg:#c6d0f5; --md-muted:#a5adce;
+  --md-heading:#babbf1; --md-heading-border:#414559; --md-link:#8caaee;
+  --md-border:#414559; --md-code-fg:#e78284; --md-code-bg:#414559;
+  --md-pre-bg:#292c3c; --md-pre-border:#414559;
+  --md-quote-fg:#a5adce; --md-quote-bg:#292c3c; --md-quote-border:#737994;
+  --md-table-head-bg:#414559; --md-table-stripe:#292c3c;
+  --md-ui-bg:rgba(65,69,89,0.92); --md-ui-border:#51576d;
+  --hl-comment:#737994; --hl-keyword:#ca9ee6; --hl-string:#a6d189; --hl-number:#ef9f76;
+  --hl-function:#8caaee; --hl-attr:#e5c890; --hl-class:#81c8be; --hl-meta:#ef9f76;
+  --hl-regexp:#f4b8e4; --hl-symbol:#ef9f76;
+}
+
+.md-preview-root[data-theme="dracula"] {
+  --md-bg:#282a36; --md-fg:#f8f8f2; --md-muted:#6272a4;
+  --md-heading:#bd93f9; --md-heading-border:#44475a; --md-link:#8be9fd;
+  --md-border:#44475a; --md-code-fg:#ff79c6; --md-code-bg:#44475a;
+  --md-pre-bg:#21222c; --md-pre-border:#44475a;
+  --md-quote-fg:#6272a4; --md-quote-bg:#21222c; --md-quote-border:#6272a4;
+  --md-table-head-bg:#44475a; --md-table-stripe:#21222c;
+  --md-ui-bg:rgba(68,71,90,0.92); --md-ui-border:#6272a4;
+  --hl-comment:#6272a4; --hl-keyword:#ff79c6; --hl-string:#f1fa8c; --hl-number:#ffb86c;
+  --hl-function:#50fa7b; --hl-attr:#50fa7b; --hl-class:#8be9fd; --hl-meta:#ffb86c;
+  --hl-regexp:#ff5555; --hl-symbol:#ffb86c;
+}
+
+.md-preview-root[data-theme="nord"] {
+  --md-bg:#2e3440; --md-fg:#d8dee9; --md-muted:#7b88a1;
+  --md-heading:#88c0d0; --md-heading-border:#434c5e; --md-link:#88c0d0;
+  --md-border:#434c5e; --md-code-fg:#bf616a; --md-code-bg:#3b4252;
+  --md-pre-bg:#3b4252; --md-pre-border:#434c5e;
+  --md-quote-fg:#7b88a1; --md-quote-bg:#3b4252; --md-quote-border:#4c566a;
+  --md-table-head-bg:#434c5e; --md-table-stripe:#3b4252;
+  --md-ui-bg:rgba(67,76,94,0.92); --md-ui-border:#4c566a;
+  --hl-comment:#616e88; --hl-keyword:#81a1c1; --hl-string:#a3be8c; --hl-number:#d08770;
+  --hl-function:#88c0d0; --hl-attr:#ebcb8b; --hl-class:#8fbcbb; --hl-meta:#d08770;
+  --hl-regexp:#bf616a; --hl-symbol:#d08770;
+}
+
+.md-preview-root[data-theme="one-dark"] {
+  --md-bg:#282c34; --md-fg:#abb2bf; --md-muted:#5c6370;
+  --md-heading:#61afef; --md-heading-border:#3a3f4b; --md-link:#61afef;
+  --md-border:#3a3f4b; --md-code-fg:#e06c75; --md-code-bg:#3a3f4b;
+  --md-pre-bg:#21252b; --md-pre-border:#3a3f4b;
+  --md-quote-fg:#5c6370; --md-quote-bg:#21252b; --md-quote-border:#5c6370;
+  --md-table-head-bg:#3a3f4b; --md-table-stripe:#21252b;
+  --md-ui-bg:rgba(58,63,75,0.92); --md-ui-border:#4b515e;
+  --hl-comment:#5c6370; --hl-keyword:#c678dd; --hl-string:#98c379; --hl-number:#e5c07b;
+  --hl-function:#61afef; --hl-attr:#e5c07b; --hl-class:#56b6c2; --hl-meta:#e5c07b;
+  --hl-regexp:#e06c75; --hl-symbol:#e5c07b;
+}
+
+.md-preview-root[data-theme="tokyo-night"] {
+  --md-bg:#1a1b26; --md-fg:#a9b1d6; --md-muted:#565f89;
+  --md-heading:#7aa2f7; --md-heading-border:#24283b; --md-link:#7aa2f7;
+  --md-border:#24283b; --md-code-fg:#f7768e; --md-code-bg:#24283b;
+  --md-pre-bg:#16161e; --md-pre-border:#24283b;
+  --md-quote-fg:#565f89; --md-quote-bg:#16161e; --md-quote-border:#565f89;
+  --md-table-head-bg:#24283b; --md-table-stripe:#16161e;
+  --md-ui-bg:rgba(36,40,59,0.92); --md-ui-border:#292e42;
+  --hl-comment:#565f89; --hl-keyword:#bb9af7; --hl-string:#9ece6a; --hl-number:#ff9e64;
+  --hl-function:#7aa2f7; --hl-attr:#e0af68; --hl-class:#7dcfff; --hl-meta:#ff9e64;
+  --hl-regexp:#f7768e; --hl-symbol:#ff9e64;
+}
+
+.md-preview-root[data-theme="gruvbox-dark"] {
+  --md-bg:#282828; --md-fg:#ebdbb2; --md-muted:#928374;
+  --md-heading:#83a598; --md-heading-border:#504945; --md-link:#83a598;
+  --md-border:#504945; --md-code-fg:#fb4934; --md-code-bg:#3c3836;
+  --md-pre-bg:#3c3836; --md-pre-border:#504945;
+  --md-quote-fg:#928374; --md-quote-bg:#3c3836; --md-quote-border:#928374;
+  --md-table-head-bg:#504945; --md-table-stripe:#3c3836;
+  --md-ui-bg:rgba(80,73,69,0.92); --md-ui-border:#665c54;
+  --hl-comment:#928374; --hl-keyword:#fb4934; --hl-string:#b8bb26; --hl-number:#fe8019;
+  --hl-function:#83a598; --hl-attr:#fabd2f; --hl-class:#8ec07c; --hl-meta:#fe8019;
+  --hl-regexp:#d3869b; --hl-symbol:#fe8019;
+}
+
+.md-preview-root[data-theme="solarized-dark"] {
+  --md-bg:#002b36; --md-fg:#839496; --md-muted:#586e75;
+  --md-heading:#268bd2; --md-heading-border:#073642; --md-link:#268bd2;
+  --md-border:#073642; --md-code-fg:#dc322f; --md-code-bg:#073642;
+  --md-pre-bg:#073642; --md-pre-border:#0a4452;
+  --md-quote-fg:#586e75; --md-quote-bg:#073642; --md-quote-border:#586e75;
+  --md-table-head-bg:#073642; --md-table-stripe:#04303a;
+  --md-ui-bg:rgba(7,54,66,0.92); --md-ui-border:#0a4452;
+  --hl-comment:#586e75; --hl-keyword:#859900; --hl-string:#2aa198; --hl-number:#cb4b16;
+  --hl-function:#268bd2; --hl-attr:#b58900; --hl-class:#2aa198; --hl-meta:#cb4b16;
+  --hl-regexp:#d33682; --hl-symbol:#cb4b16;
+}
+
+.md-preview-root[data-theme="rose-pine"] {
+  --md-bg:#191724; --md-fg:#e0def4; --md-muted:#908caa;
+  --md-heading:#c4a7e7; --md-heading-border:#26233a; --md-link:#9ccfd8;
+  --md-border:#26233a; --md-code-fg:#eb6f92; --md-code-bg:#26233a;
+  --md-pre-bg:#1f1d2e; --md-pre-border:#26233a;
+  --md-quote-fg:#908caa; --md-quote-bg:#1f1d2e; --md-quote-border:#6e6a86;
+  --md-table-head-bg:#26233a; --md-table-stripe:#1f1d2e;
+  --md-ui-bg:rgba(38,35,58,0.92); --md-ui-border:#403d52;
+  --hl-comment:#6e6a86; --hl-keyword:#c4a7e7; --hl-string:#f6c177; --hl-number:#f6c177;
+  --hl-function:#9ccfd8; --hl-attr:#f6c177; --hl-class:#9ccfd8; --hl-meta:#ebbcba;
+  --hl-regexp:#eb6f92; --hl-symbol:#f6c177;
+}
+
+.md-preview-root[data-theme="github-light"] {
+  --md-bg:#ffffff; --md-fg:#1f2328; --md-muted:#59636e;
+  --md-heading:#1f2328; --md-heading-border:#d1d9e0; --md-link:#0969da;
+  --md-border:#d1d9e0; --md-code-fg:#1f2328; --md-code-bg:#eff1f3;
+  --md-pre-bg:#f6f8fa; --md-pre-border:#d1d9e0;
+  --md-quote-fg:#59636e; --md-quote-bg:#f6f8fa; --md-quote-border:#d1d9e0;
+  --md-table-head-bg:#f6f8fa; --md-table-stripe:#f6f8fa;
+  --md-ui-bg:rgba(246,248,250,0.92); --md-ui-border:#d1d9e0;
+  --hl-comment:#6e7781; --hl-keyword:#cf222e; --hl-string:#0a3069; --hl-number:#0550ae;
+  --hl-function:#8250df; --hl-attr:#953800; --hl-class:#953800; --hl-meta:#0550ae;
+  --hl-regexp:#0a3069; --hl-symbol:#0550ae;
+}
+
+.md-preview-root[data-theme="catppuccin-latte"] {
+  --md-bg:#eff1f5; --md-fg:#4c4f69; --md-muted:#6c6f85;
+  --md-heading:#8839ef; --md-heading-border:#ccd0da; --md-link:#1e66f5;
+  --md-border:#ccd0da; --md-code-fg:#d20f39; --md-code-bg:#ccd0da;
+  --md-pre-bg:#e6e9ef; --md-pre-border:#ccd0da;
+  --md-quote-fg:#6c6f85; --md-quote-bg:#e6e9ef; --md-quote-border:#9ca0b0;
+  --md-table-head-bg:#ccd0da; --md-table-stripe:#e6e9ef;
+  --md-ui-bg:rgba(204,208,218,0.92); --md-ui-border:#bcc0cc;
+  --hl-comment:#9ca0b0; --hl-keyword:#8839ef; --hl-string:#40a02b; --hl-number:#fe640b;
+  --hl-function:#1e66f5; --hl-attr:#df8e1d; --hl-class:#179299; --hl-meta:#fe640b;
+  --hl-regexp:#ea76cb; --hl-symbol:#fe640b;
+}
+
+.md-preview-root[data-theme="solarized-light"] {
+  --md-bg:#fdf6e3; --md-fg:#657b83; --md-muted:#93a1a1;
+  --md-heading:#586e75; --md-heading-border:#eee8d5; --md-link:#268bd2;
+  --md-border:#eee8d5; --md-code-fg:#dc322f; --md-code-bg:#eee8d5;
+  --md-pre-bg:#eee8d5; --md-pre-border:#e3dcc4;
+  --md-quote-fg:#93a1a1; --md-quote-bg:#eee8d5; --md-quote-border:#93a1a1;
+  --md-table-head-bg:#eee8d5; --md-table-stripe:#f5efdc;
+  --md-ui-bg:rgba(238,232,213,0.92); --md-ui-border:#e3dcc4;
+  --hl-comment:#93a1a1; --hl-keyword:#859900; --hl-string:#2aa198; --hl-number:#cb4b16;
+  --hl-function:#268bd2; --hl-attr:#b58900; --hl-class:#2aa198; --hl-meta:#cb4b16;
+  --hl-regexp:#d33682; --hl-symbol:#cb4b16;
+}
+
+.md-preview-root[data-theme="gruvbox-light"] {
+  --md-bg:#fbf1c7; --md-fg:#3c3836; --md-muted:#7c6f64;
+  --md-heading:#076678; --md-heading-border:#d5c4a1; --md-link:#076678;
+  --md-border:#d5c4a1; --md-code-fg:#9d0006; --md-code-bg:#ebdbb2;
+  --md-pre-bg:#ebdbb2; --md-pre-border:#d5c4a1;
+  --md-quote-fg:#7c6f64; --md-quote-bg:#ebdbb2; --md-quote-border:#7c6f64;
+  --md-table-head-bg:#d5c4a1; --md-table-stripe:#ebdbb2;
+  --md-ui-bg:rgba(213,196,161,0.92); --md-ui-border:#bdae93;
+  --hl-comment:#7c6f64; --hl-keyword:#9d0006; --hl-string:#79740e; --hl-number:#af3a03;
+  --hl-function:#076678; --hl-attr:#b57614; --hl-class:#427b58; --hl-meta:#af3a03;
+  --hl-regexp:#8f3f71; --hl-symbol:#af3a03;
+}
+
+.md-preview-root[data-theme="one-light"] {
+  --md-bg:#fafafa; --md-fg:#383a42; --md-muted:#a0a1a7;
+  --md-heading:#4078f2; --md-heading-border:#e5e5e6; --md-link:#4078f2;
+  --md-border:#e5e5e6; --md-code-fg:#e45649; --md-code-bg:#f0f0f1;
+  --md-pre-bg:#f0f0f1; --md-pre-border:#e5e5e6;
+  --md-quote-fg:#a0a1a7; --md-quote-bg:#f0f0f1; --md-quote-border:#c2c2c4;
+  --md-table-head-bg:#e5e5e6; --md-table-stripe:#f0f0f1;
+  --md-ui-bg:rgba(229,229,230,0.92); --md-ui-border:#d4d4d6;
+  --hl-comment:#a0a1a7; --hl-keyword:#a626a4; --hl-string:#50a14f; --hl-number:#c18401;
+  --hl-function:#4078f2; --hl-attr:#c18401; --hl-class:#0184bc; --hl-meta:#c18401;
+  --hl-regexp:#e45649; --hl-symbol:#c18401;
+}
+
+.md-preview-root[data-theme="rose-pine-dawn"] {
+  --md-bg:#faf4ed; --md-fg:#575279; --md-muted:#797593;
+  --md-heading:#907aa9; --md-heading-border:#f2e9e1; --md-link:#286983;
+  --md-border:#f2e9e1; --md-code-fg:#b4637a; --md-code-bg:#f2e9e1;
+  --md-pre-bg:#fffaf3; --md-pre-border:#dfdad9;
+  --md-quote-fg:#797593; --md-quote-bg:#fffaf3; --md-quote-border:#9893a5;
+  --md-table-head-bg:#f2e9e1; --md-table-stripe:#fffaf3;
+  --md-ui-bg:rgba(242,233,225,0.92); --md-ui-border:#dfdad9;
+  --hl-comment:#9893a5; --hl-keyword:#907aa9; --hl-string:#ea9d34; --hl-number:#d7827e;
+  --hl-function:#56949f; --hl-attr:#ea9d34; --hl-class:#56949f; --hl-meta:#d7827e;
+  --hl-regexp:#b4637a; --hl-symbol:#ea9d34;
+}
+
+.md-preview-root[data-theme="ayu-light"] {
+  --md-bg:#fafafa; --md-fg:#5c6166; --md-muted:#abb0b6;
+  --md-heading:#5c6166; --md-heading-border:#e7eaed; --md-link:#399ee6;
+  --md-border:#e7eaed; --md-code-fg:#f07171; --md-code-bg:#f0f0f0;
+  --md-pre-bg:#f0f0f0; --md-pre-border:#e7eaed;
+  --md-quote-fg:#abb0b6; --md-quote-bg:#f0f0f0; --md-quote-border:#cdd1d5;
+  --md-table-head-bg:#e7eaed; --md-table-stripe:#f0f0f0;
+  --md-ui-bg:rgba(231,234,237,0.92); --md-ui-border:#d4d8db;
+  --hl-comment:#abb0b6; --hl-keyword:#fa8d3e; --hl-string:#86b300; --hl-number:#a37acc;
+  --hl-function:#399ee6; --hl-attr:#f2ae49; --hl-class:#55b4d4; --hl-meta:#fa8d3e;
+  --hl-regexp:#f07171; --hl-symbol:#fa8d3e;
+}
+
+.md-preview-root[data-theme="tokyo-night-light"] {
+  --md-bg:#e1e2e7; --md-fg:#343b58; --md-muted:#848cb5;
+  --md-heading:#2e7de9; --md-heading-border:#c4c8da; --md-link:#2e7de9;
+  --md-border:#c4c8da; --md-code-fg:#f52a65; --md-code-bg:#c4c8da;
+  --md-pre-bg:#d0d5e3; --md-pre-border:#c4c8da;
+  --md-quote-fg:#848cb5; --md-quote-bg:#d0d5e3; --md-quote-border:#9aa0c5;
+  --md-table-head-bg:#c4c8da; --md-table-stripe:#d0d5e3;
+  --md-ui-bg:rgba(196,200,218,0.92); --md-ui-border:#b3b8d0;
+  --hl-comment:#848cb5; --hl-keyword:#9854f1; --hl-string:#587539; --hl-number:#b15c00;
+  --hl-function:#2e7de9; --hl-attr:#8c6c3e; --hl-class:#007197; --hl-meta:#b15c00;
+  --hl-regexp:#f52a65; --hl-symbol:#b15c00;
+}
