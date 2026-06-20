@@ -1,30 +1,13 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useFileTree } from '../composables/useFileTree'
-import { useFileIcon } from '../composables/useFileIcon'
-import type { main } from '../../wailsjs/go/models'
+import FileTreeNode from './FileTreeNode.vue'
 
-const { currentPath, entries, error, init, goUp, openFolderDialog, open } = useFileTree()
-const { getIcon, fallback } = useFileIcon()
+const { rootNode, currentPath, error, init, goUp, openFolderDialog } = useFileTree()
 
 onMounted(() => {
   void init()
 })
-
-function onDragStart(e: DragEvent, entry: main.FileEntry) {
-  if (!e.dataTransfer) return
-  e.dataTransfer.setData('text/path', entry.path)
-  e.dataTransfer.setData('text/plain', entry.path)
-  e.dataTransfer.effectAllowed = 'copy'
-}
-
-function onIconError(e: Event, isDir: boolean) {
-  const img = e.target as HTMLImageElement
-  // 避免回退图标再次出错导致死循环
-  if (img.dataset.fallback) return
-  img.dataset.fallback = '1'
-  img.src = fallback(isDir)
-}
 </script>
 
 <template>
@@ -36,24 +19,16 @@ function onIconError(e: Event, isDir: boolean) {
 
     <div class="list">
       <div v-if="error" class="error">{{ error }}</div>
-      <div
-        v-for="entry in entries"
-        :key="entry.path"
-        class="item"
-        :class="{ dir: entry.isDir }"
-        draggable="true"
-        :title="entry.name"
-        @click="open(entry)"
-        @dragstart="onDragStart($event, entry)"
-      >
-        <img
-          class="icon"
-          :src="getIcon(entry.name, entry.isDir)"
-          alt=""
-          draggable="false"
-          @error="onIconError($event, entry.isDir)"
+      <template v-if="rootNode && rootNode.children">
+        <FileTreeNode
+          v-for="child in rootNode.children"
+          :key="child.path"
+          :node="child"
+          :depth="0"
         />
-        <span class="name">{{ entry.name }}</span>
+      </template>
+      <div v-else-if="!rootNode && !error" class="empty">
+        点击下方「选择目录」，或在终端 cd 进入一个目录
       </div>
     </div>
 
@@ -118,31 +93,11 @@ function onIconError(e: Event, isDir: boolean) {
   font-size: 12px;
   word-break: break-all;
 }
-.item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.item:hover {
-  background: var(--ctp-surface0);
-}
-.icon {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  pointer-events: none;
-}
-.name {
-  font-size: 13px;
-  color: var(--ctp-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.item.dir .name {
-  color: var(--ctp-lavender);
+.empty {
+  padding: 16px 12px;
+  color: var(--ctp-subtext0);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .footer {
@@ -167,3 +122,4 @@ function onIconError(e: Event, isDir: boolean) {
   color: var(--ctp-text);
 }
 </style>
+</parameter>
