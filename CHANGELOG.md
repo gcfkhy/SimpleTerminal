@@ -7,6 +7,22 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [v1.4.0] · 2026-06-22
+
+### ✨ 新增 (Added)
+
+- **Markdown 预览新增大纲目录** — 预览左侧可折叠标题树，滚动正文时活跃项联动高亮；支持**推送模式**（正文右移）与**浮层模式**（面板浮于正文上）切换；拖拽右缘 grip 调宽（180–480 px）；面板关闭时左缘显示 ☰ 把手，工具栏增 📑 入口（无标题时置灰）；开关 / 模式 / 宽度均持久化到 `localStorage`（键 `md-preview-outline-open|mode|width`）。
+- **Markdown 预览新增 Ctrl+F 查找** — 预览内查找条，输入即高亮全部匹配、当前项更醒目，显示命中计数 `N / M`；支持跨内联标签（`code`/加粗等）整体命中；Enter / ↓ / F3 下一个、Shift+Enter / ↑ / Shift+F3 上一个，环绕导航，当前项自动滚动居中；Aa 按钮切换区分大小写；Esc / ✕ 关闭并清除高亮；焦点在终端时 Ctrl+F 不触发（终端不受影响）；高亮着色使用 CSS Custom Highlight API；工具栏增 🔍 入口。
+
+---
+
+### ✨ Added
+
+- **Markdown preview: outline panel** — A collapsible heading tree on the left side of the preview, with scroll-spy highlighting of the active heading. Supports **push mode** (the content area shifts right) and **overlay mode** (the panel floats over content). Drag the right-edge grip to resize (180–480 px). When closed, a ☰ edge handle appears; the toolbar gains a 📑 button (greyed out when no headings exist). Panel open/mode/width are persisted to `localStorage` (`md-preview-outline-open|mode|width`).
+- **Markdown preview: Ctrl+F find** — An in-preview find bar that highlights all matches as you type, with the current match emphasised and a `N / M` count displayed. Matches span across inline elements (e.g. `code`, bold). Navigate with Enter / ↓ / F3 (next) and Shift+Enter / ↑ / Shift+F3 (previous), wrapping around. The Aa button toggles case sensitivity. Esc / ✕ closes the bar and clears highlights. Ctrl+F with focus in the terminal does not trigger (terminal is unaffected). Highlight colouring uses the CSS Custom Highlight API. A 🔍 toolbar button also opens the find bar.
+
+---
+
 ## [v1.3.0] · 2026-06-20
 
 ### ✨ 新增 (Added)
