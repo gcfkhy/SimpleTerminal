@@ -121,9 +121,10 @@ function pickActive() {
       return
     }
   }
+  const cutoff = (props.scrollEl ? props.scrollEl.getBoundingClientRect().top : 0) + 80
   let cur: FlatItem | null = null
   for (const it of flat.value) {
-    if (it.el && it.el.getBoundingClientRect().top <= 80) cur = it
+    if (it.el && it.el.getBoundingClientRect().top <= cutoff) cur = it
     else break
   }
   if (cur) setActive(cur.id)
