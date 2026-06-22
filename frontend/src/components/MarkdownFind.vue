@@ -113,7 +113,17 @@ function go(dir: number) {
   updateCount()
 }
 
+let composing = false
+function onCompositionStart() {
+  composing = true
+}
+function onCompositionEnd() {
+  composing = false
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => runSearch(true), 120)
+}
 function onInput() {
+  if (composing) return
   clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => runSearch(true), 120)
 }
@@ -171,6 +181,7 @@ function onWindowLoad() {
 }
 onMounted(() => window.addEventListener('load', onWindowLoad))
 onBeforeUnmount(() => {
+  clearTimeout(debounceTimer)
   window.removeEventListener('load', onWindowLoad)
   clearHighlights()
 })
@@ -190,6 +201,8 @@ defineExpose({ openWith, go })
       v-model="query"
       @input="onInput"
       @keydown="onKeydown"
+      @compositionstart="onCompositionStart"
+      @compositionend="onCompositionEnd"
     />
     <span class="md-find-count" :class="{ none: countNone }">{{ countText }}</span>
     <div class="md-find-btn md-find-case" :class="{ active: caseSensitive }" title="区分大小写" @click="toggleCase">Aa</div>
