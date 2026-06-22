@@ -1,0 +1,10 @@
+/* 全局（非 scoped）：::highlight 伪元素无法被 scoped CSS 命中，必须全局引入。
+   底色高不透明度黄 + 强制深色文字，亮/暗主题下都清晰；当前项用更醒目的橙。 */
+::highlight(md-find) {
+  background: var(--md-find-bg, rgba(255, 210, 0, 0.55));
+  color: #1a1a1a;
+}
+::highlight(md-find-current) {
+  background: var(--md-find-current-bg, rgba(255, 145, 0, 0.9));
+  color: #1a1a1a;
+}
