@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, nextTick } from 'vue'
+import { ref, watch, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import mermaid from 'mermaid'
 import 'katex/dist/katex.min.css'
 import '../assets/markdown/themes.css'
@@ -10,6 +10,9 @@ import { BrowserOpenURL } from '../../wailsjs/runtime'
 import { buildExportHtml } from '../utils/markdown/export-html'
 import { SaveExportFile, ExportPdf, SavePngBase64 } from '../../wailsjs/go/main/App'
 import html2canvas from 'html2canvas'
+import MarkdownOutline from './MarkdownOutline.vue'
+import MarkdownFind from './MarkdownFind.vue'
+import '../assets/markdown/find-highlight.css'
 
 const props = defineProps<{ source: string; filePath: string }>()
 const emit = defineEmits<{ refresh: [] }>()
@@ -20,6 +23,64 @@ const exportOpen = ref(false)
 const html = computed(() => renderMarkdownToHtml(props.source))
 const bodyEl = ref<HTMLElement | null>(null)
 const rootEl = ref<HTMLElement | null>(null)
+const scrollEl = ref<HTMLElement | null>(null)
+
+// ── 大纲状态（持久化）──
+const outlineOpen = ref(localStorage.getItem('md-preview-outline-open') === '1')
+const outlineMode = ref<'push' | 'overlay'>(
+  localStorage.getItem('md-preview-outline-mode') === 'overlay' ? 'overlay' : 'push',
+)
+const outlineWidth = ref(parseInt(localStorage.getItem('md-preview-outline-width') || '260', 10) || 260)
+const outlineAvailable = ref(false)
+function setOutlineOpen(v: boolean) {
+  outlineOpen.value = v
+  localStorage.setItem('md-preview-outline-open', v ? '1' : '0')
+}
+function toggleOutline() {
+  if (outlineAvailable.value) setOutlineOpen(!outlineOpen.value)
+}
+function setOutlineMode(m: 'push' | 'overlay') {
+  outlineMode.value = m
+  localStorage.setItem('md-preview-outline-mode', m)
+}
+function setOutlineWidth(w: number) {
+  outlineWidth.value = w
+  localStorage.setItem('md-preview-outline-width', String(w))
+}
+function onOutlineAvailable(v: boolean) {
+  outlineAvailable.value = v
+  if (!v && outlineOpen.value) setOutlineOpen(false) // 无标题时强制收起
+}
+
+// ── 查找状态（临时）──
+const findRef = ref<InstanceType<typeof MarkdownFind> | null>(null)
+const findOpen = ref(false)
+function openFind(prefill?: string) {
+  findRef.value?.openWith(prefill)
+}
+
+// Ctrl/⌘+F 仅在「焦点/鼠标在预览内」时打开查找，避免抢终端按键。
+const previewHovered = ref(false)
+function onGlobalKeydown(e: KeyboardEvent) {
+  const inPreview = previewHovered.value || !!rootEl.value?.contains(document.activeElement)
+  const mod = e.ctrlKey || e.metaKey
+  if (mod && !e.altKey && (e.key === 'f' || e.key === 'F')) {
+    if (!inPreview) return
+    e.preventDefault()
+    e.stopPropagation()
+    let sel = ''
+    try {
+      const s = window.getSelection()
+      if (s && !s.isCollapsed) sel = String(s).trim()
+    } catch {
+      /* noop */
+    }
+    openFind(sel || undefined)
+  } else if (e.key === 'F3' && findOpen.value && inPreview) {
+    e.preventDefault()
+    findRef.value?.go(e.shiftKey ? -1 : 1)
+  }
+}
 
 const isDark = computed(
   () => MARKDOWN_THEMES.find(t => t.id === theme.value)?.group !== 'light',
@@ -95,6 +156,10 @@ watch([html, theme], async () => {
 onMounted(async () => {
   await nextTick()
   await runMermaid()
+  window.addEventListener('keydown', onGlobalKeydown, true)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onGlobalKeydown, true)
 })
 
 // 链接：外链走系统浏览器；页内锚点容器内平滑滚动
@@ -184,18 +249,31 @@ async function exportPng() {
   }
 }
 
-defineExpose({ rootEl, bodyEl, theme })
+defineExpose({ rootEl, bodyEl, scrollEl, theme })
 </script>
 
 <template>
-  <div class="md-preview-root" :data-theme="theme" ref="rootEl">
-    <div class="md-scroll" @wheel="onWheel">
+  <div class="md-preview-root" :data-theme="theme" ref="rootEl"
+       @mouseenter="previewHovered = true" @mouseleave="previewHovered = false">
+    <div class="md-scroll" ref="scrollEl" @wheel="onWheel"
+         :style="outlineOpen && outlineMode === 'push' ? { paddingLeft: outlineWidth + 'px' } : undefined">
       <div class="md-body" ref="bodyEl" :style="{ fontSize: bodyFontPx + 'px' }"
            v-html="html" @click="onClick"></div>
     </div>
 
-    <!-- 工具条（左→右）：主题 / 导出 / 缩小 / 放大 / 刷新 -->
+    <MarkdownOutline
+      :body-el="bodyEl" :scroll-el="scrollEl" :html="html"
+      :open="outlineOpen" :mode="outlineMode" :width="outlineWidth"
+      @update:open="setOutlineOpen" @update:mode="setOutlineMode"
+      @update:width="setOutlineWidth" @available="onOutlineAvailable" />
+    <MarkdownFind
+      ref="findRef" :open="findOpen" @update:open="findOpen = $event"
+      :body-el="bodyEl" :scroll-el="scrollEl" />
+
+    <!-- 工具条（左→右）：大纲 / 查找 / 主题 / 导出 / 缩小 / 放大 / 刷新 -->
     <div class="md-toolbar">
+      <button class="md-tool-btn" title="大纲" :class="{ disabled: !outlineAvailable }" @click="toggleOutline">📑</button>
+      <button class="md-tool-btn" title="查找 (Ctrl+F)" @click="openFind()">🔍</button>
       <button class="md-tool-btn" title="主题" @click="toggleTheme">🎨</button>
       <button class="md-tool-btn" title="导出" @click="toggleExport">📤</button>
       <button class="md-tool-btn" title="缩小" @click="zoomOut">➖</button>
@@ -235,6 +313,7 @@ defineExpose({ rootEl, bodyEl, theme })
 .md-scroll {
   height: 100%;
   overflow: auto;
+  transition: padding-left 0.2s ease;
 }
 .md-toolbar {
   position: absolute; right: 14px; bottom: 14px; display: flex; gap: 8px; z-index: 10;
@@ -246,6 +325,7 @@ defineExpose({ rootEl, bodyEl, theme })
   display: flex; align-items: center; justify-content: center; padding: 0;
 }
 .md-tool-btn:hover { opacity: 1; }
+.md-tool-btn.disabled { opacity: 0.4; pointer-events: none; }
 .md-panel {
   position: absolute; right: 14px; bottom: 56px; max-height: 60vh; overflow: auto;
   background: var(--md-ui-bg); border: 1px solid var(--md-ui-border); border-radius: 8px;
