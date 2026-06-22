@@ -175,6 +175,11 @@ watch(() => props.open, async (open) => {
   }
 })
 
+// bodyEl 可能在首次打开后才由父赋值，或内容重渲后变化；若查找条开着且有词，重跑一次（不滚动）。
+watch(() => props.bodyEl, () => {
+  if (props.open && query.value) runSearch(false)
+})
+
 // 晚到内容（图片/KaTeX/Mermaid 异步渲染）稳定后重跑一次（不滚动，避免跳动）。
 function onWindowLoad() {
   if (props.open && query.value) runSearch(false)
